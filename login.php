@@ -1,15 +1,13 @@
 <?php
 session_start();
-
 include 'conexao.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
-        echo 'Por favor, preencha todos os campos do formulário.';
-        exit();
+        echo '<script>alert("Por favor, preencha todos os campos.");</script>';
     } else {
         $sql = "SELECT id, email, password FROM usuarios WHERE email = ?";
         $stmt = $mysqli->prepare($sql);
@@ -22,11 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($stmt->fetch() && password_verify($password, $dbPassword)) {
                 $_SESSION['logged_in'] = true;
                 $_SESSION['user_id'] = $id;
-                $_SESSION['email'] = $email;
+                $_SESSION['email'] = $dbEmail;
                 header('Location: home.php');
                 exit();
             } else {
-                echo 'Credenciais incorretas.';
+                echo '<script>alert("Credenciais incorretas.");</script>';
             }
             $stmt->close();
         } else {
@@ -38,30 +36,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $mysqli->close();
 ?>
 
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
+    <link rel="stylesheet" href="assets/css/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <h1>Login</h1>
+    <div id="form-sec">
+        <form action="" method="POST">
+            <h1>Login</h1>
 
-    <form action="" method="POST">
-        <label for="email">Email:</label>
-        <input type="email" name="email" required>
+            <label for="email">Endereço de Email:</label>
+            <input type="email" name="email" id="email" autocomplete="email" required>
 
-        <label for="password">Senha:</label>
-        <input type="password" name="password" required>
+            <label for="password">Senha:</label>
+            <input type="password" name="password" id="password" autocomplete="current-password" required>
 
-        <button type="submit">Entrar</button>
-    </form>
+            <button class="buttonForm" type="submit">Entrar</button>
 
-    <a href="cadastro.php">Cadastro</a>
-    <a href="senha.php">Redefinir senha</a>
+            <p>Não tem uma conta? <a href="cadastro.php">Registre-se</a></p>
+        </form>
+    </div>
 </body>
 
 </html>

@@ -13,7 +13,9 @@ include 'validacao.php';
 </head>
 
 <body>
-    <h1>Home</h1>
+    <h1>bem vindo a home seu lindo</h1>
+
+    <a href="logout.php">sair</a>
 </body>
 
 </html>
