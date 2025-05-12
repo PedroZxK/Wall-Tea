@@ -54,6 +54,7 @@ function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = 'Home - Wall & Tea';
     const token = localStorage.getItem('token');
     console.log("Home: Verificando token:", token);
 
@@ -76,7 +77,11 @@ function Home() {
   };
 
   if (loading) {
-    return null;
+    return (
+      <HomeContainer>
+        <p>Carregando...</p>
+      </HomeContainer>
+    );
   }
 
   if (!isLoggedIn) {

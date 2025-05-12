@@ -15,6 +15,9 @@ const GlobalStyle = createGlobalStyle`
     height: 100%;
     background-color: #108886;
   }
+  #root {
+    padding: 0;
+  }
 `;
 
 // Estilos usando styled-components
@@ -22,7 +25,7 @@ const CadastroContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 93vh;
+  min-height: 100vh;
   padding: 0;
   width: 100%;
 `;

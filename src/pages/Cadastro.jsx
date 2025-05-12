@@ -14,6 +14,9 @@ const GlobalStyle = createGlobalStyle`
     height: 100%;
     background-color: #108886;
   }
+  #root {
+    padding: 0;
+  
 `;
 
 const CadastroContainer = styled.div`
