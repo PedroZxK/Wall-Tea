@@ -1,14 +1,16 @@
 const express = require('express');
-const cors = require('cors');
-const authRoutes = require('./routes/auth'); // Supondo que você tenha uma rota de autenticação
+const cors = require('cors'); // Importe o middleware cors
+const authRoutes = require('./routes/auth');
+require('dotenv').config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const port = process.env.PORT || 3000;
 
-app.use('/api/auth', authRoutes); // Defina suas rotas
+app.use(cors()); // Use o middleware cors para permitir todas as origens (para desenvolvimento)
+app.use(express.json()); // Para que o backend possa entender o JSON que o frontend envia
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+app.use('/auth', authRoutes);
+
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
