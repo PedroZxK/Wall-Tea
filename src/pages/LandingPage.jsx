@@ -13,7 +13,7 @@ const GlobalStyle = createGlobalStyle`
     margin: 0;
     padding: 0;
     display: flex;
-    min-height: 100vh; /* Garante que o body tenha pelo menos a altura da tela */
+    min-height: 100vh;
   }
   html {
     scroll-behavior: smooth;
@@ -23,7 +23,7 @@ const GlobalStyle = createGlobalStyle`
   #root {
     display: flex;
     flex-direction: column;
-    flex: 1; /* Permite que o #root cresça para ocupar o espaço restante */
+    flex: 1;
     padding: 0;
     max-width: 100%;
   }
@@ -33,7 +33,7 @@ const Navbar = styled.nav`
   background-color: #108886;
   padding: 10px 20px;
   display: flex;
-  justify-content: space-between; /* Mantém o espaço entre os elementos */
+  justify-content: space-between;
   align-items: center;
   width: 100%;
   position: sticky;
@@ -44,11 +44,10 @@ const Navbar = styled.nav`
 
 const NavLinks = styled.div`
   display: flex;
-  justify-content: center; /* Centraliza os itens horizontalmente */
+  justify-content: center;
   align-items: center;
   flex-grow: 1;
   width: 100%;
-  position: absolute;
 `;
 
 const NavItem = styled.span`
@@ -90,7 +89,7 @@ const NavButtons = styled.div`
   align-items: center;
   flex-grow: 1;
   display: flex;
-  justify-content: flex-end; /* Alinha os botões à direita */
+  justify-content: flex-end;
   gap: 10px;
 `;
 
@@ -100,11 +99,11 @@ const NavButton = styled(Link)`
   padding: 8px 16px;
   border-radius: 5px;
   text-decoration: none;
-  white-space: nowrap; /* Garante que o texto não quebre a linha */
+  white-space: nowrap;
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: #f0f0f0; /* Tom ligeiramente mais escuro */
+    background-color: #f0f0f0;
   }
 `;
 
@@ -114,11 +113,11 @@ const LeftButton = styled(Link)`
   padding: 12px 24px;
   border-radius: 5px;
   text-decoration: none;
-  white-space: nowrap; /* Garante que o texto não quebre a linha */
+  white-space: nowrap;
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color:rgb(14, 103, 101); /* Tom ligeiramente mais escuro */
+    background-color:rgb(14, 103, 101);
   }
 `;
 
@@ -130,7 +129,7 @@ const Footer = styled.footer`
   align-items: center;
   justify-content: center;
   width: 100%;
-  margin-top: auto; /* Empurra o footer para o final */
+  margin-top: auto;
   bottom: 0;
 `;
 
@@ -162,8 +161,8 @@ const MainContent = styled.div`
   align-items: center;
   justify-content: center;
   width: 100%;
-  flex: 1; /* Permite que o MainContent cresça e ocupe o espaço */
-  overflow: hidden; /* Adicionado para evitar scrollbar horizontal em transições */
+  flex: 1;
+  overflow: hidden;
 `;
 
 const Section = styled.div`
