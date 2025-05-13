@@ -175,7 +175,7 @@ function Cadastro() {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/auth/cadastro', {
+      const response = await fetch('http://localhost:3001/api/cadastro', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

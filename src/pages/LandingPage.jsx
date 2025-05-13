@@ -155,11 +155,11 @@ const Copyright = styled.p`
 `;
 
 const MainContent = styled.div`
-  padding: 20px;
+  // padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  // justify-content: center;
   width: 100%;
   flex: 1;
   overflow: hidden;
@@ -168,7 +168,6 @@ const MainContent = styled.div`
 const Section = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 40px;
   width: 100%;
   max-width: 100%;
 `;
@@ -206,7 +205,7 @@ const OpacityImageLeft = styled.img`
 
 const RightAlignedText = styled.div`
   flex: 1;
-  padding-left: 20px;
+  padding: 20px;
   width: 100%;
 `;
 
@@ -295,8 +294,8 @@ function App() {
                 <LeftImage style={{ width: '100%' }}>
                   <OpacityImageLeft src="src\assets\womanComputer.png" alt="Mulher no Computador" />
                 </LeftImage>
-                <RightAlignedText style={{ width: '100%' }}>
-                  <p style={{ width: '900px', textAlign: 'right', fontSize: '1.1rem' }}> <span style={{ color: '#108886', fontWeight: 'bold' }}>Organize sua vida financeira de um jeito simples e visual. </span>Registre suas despesas e receitas, estabeleça limites de gastos por categoria com nossos orçamentos flexíveis e planeje seu futuro definindo metas financeiras. Nossa ferramenta ainda oferece insights e dicas sobre como usar melhor o seu dinheiro, trazendo mais tranquilidade para o seu dia a dia. <span style={{ color: '#108886', fontWeight: 'bold' }}>Comece a transformar sua relação com o dinheiro.</span></p>
+                <RightAlignedText style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <p style={{ width: '50%', textAlign: 'right', fontSize: '2rem' }}> <span style={{ color: '#108886', fontWeight: 'bold' }}>Organize sua vida financeira de um jeito simples e visual. </span>Registre suas despesas e receitas, estabeleça limites de gastos por categoria com nossos orçamentos flexíveis e planeje seu futuro definindo metas financeiras. Nossa ferramenta ainda oferece insights e dicas sobre como usar melhor o seu dinheiro, trazendo mais tranquilidade para o seu dia a dia. <span style={{ color: '#108886', fontWeight: 'bold' }}>Comece a transformar sua relação com o dinheiro.</span></p>
                 </RightAlignedText>
               </Section>
             </motion.div>
@@ -312,10 +311,10 @@ function App() {
               style={{ width: '100%' }}
             >
               <Section style={{ width: '100%' }}>
-                <LeftText style={{ width: '100%' }}>
-                  <h2 style={{ textAlign: 'left', fontSize: '3rem', color: '#108886' }}>SENAI - Félix Guisard</h2>
-                  <p style={{ width: '900px', textAlign: 'left', fontSize: '1.1rem' }}>O SENAI é um dos cinco maiores complexos de educação profissional do mundo e o maior da América Latina. A rede SENAI-SP engloba 92 unidades fixas, incluindo a escola SENAI Félix Guisard, localizada na cidade de Taubaté.</p>
-                  <p style={{ width: '900px', textAlign: 'left', fontSize: '1.1rem' }}>Oferecemos cursos para as qualificações de mecânica, metalurgia, eletricidade, eletrônica, automação, segurança do trabalho, logística, gestão, tecnologia da informação, em um ambiente de ensino projetado para oferecer capacitação profissional e especialização técnica. Contamos com laboratórios de metrologia, hidráulica, pneumática, impressão 3D, informática e oficinas de automobilística, soldagem, caldeiraria, mecânica geral, ferramentaria e plásticos.</p>
+                <LeftText style={{ width: '50%', padding: '20px' }}>
+                  <h2 style={{ textAlign: 'center', fontSize: '3rem', color: '#108886' }}>SENAI - Félix Guisard</h2>
+                  <p style={{ textAlign: 'left', fontSize: '1.1rem' }}>O SENAI é um dos cinco maiores complexos de educação profissional do mundo e o maior da América Latina. A rede SENAI-SP engloba 92 unidades fixas, incluindo a escola SENAI Félix Guisard, localizada na cidade de Taubaté.</p>
+                  <p style={{  textAlign: 'left', fontSize: '1.1rem' }}>Oferecemos cursos para as qualificações de mecânica, metalurgia, eletricidade, eletrônica, automação, segurança do trabalho, logística, gestão, tecnologia da informação, em um ambiente de ensino projetado para oferecer capacitação profissional e especialização técnica. Contamos com laboratórios de metrologia, hidráulica, pneumática, impressão 3D, informática e oficinas de automobilística, soldagem, caldeiraria, mecânica geral, ferramentaria e plásticos.</p>
                 </LeftText>
                 <RightImage style={{ width: '100%' }}>
                   <OpacityImageRight src="src\assets\senai.png" alt="SENAI" />
@@ -335,12 +334,12 @@ function App() {
             >
               <FerramentasSection style={{ width: '100%' }}>
                 <FerramentaItem style={{ width: '100%' }}>
-                  <LeftText style={{ width: '100%' }}>
+                  <LeftText style={{ width: '40%', padding: '20px' }}>
                     <h2 style={{ textAlign: 'left', fontSize: '3rem', color: '#0D4147' }}>Controle de Gastos mensais</h2>
-                    <p style={{ width: '900px', textAlign: 'left', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Saiba onde vai cada centavo!</p>
-                    <p style={{ width: '900px', textAlign: 'left', fontSize: '1.1rem', color: '#000000' }}>Registre facilmente suas despesas e receitas diárias. Visualize um resumo claro do seu fluxo de caixa mensal e identifique seus principais padrões de gastos.</p>
+                    <p style={{ textAlign: 'left', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Saiba onde vai cada centavo!</p>
+                    <p style={{ textAlign: 'left', fontSize: '1.1rem', color: '#000000' }}>Registre facilmente suas despesas e receitas diárias. Visualize um resumo claro do seu fluxo de caixa mensal e identifique seus principais padrões de gastos.</p>
                   </LeftText>
-                  <RightImage style={{ width: '100%' }}>
+                  <RightImage style={{ width: '60%' }}>
                     <OpacityImageRight src="src\assets\moneyHand.png" alt="Controle de Gastos" />
                   </RightImage>
                 </FerramentaItem>
@@ -349,18 +348,18 @@ function App() {
                   <LeftImage style={{ width: '100%' }}>
                     <OpacityImageLeft src="src\assets\moneyCalc.png" alt="Orçamentos" />
                   </LeftImage>
-                  <RightAlignedText style={{ width: '100%' }}>
+                  <RightAlignedText style={{ width: '50%', padding: '20px' }}>
                     <h2 style={{ textAlign: 'right', fontSize: '3rem', color: '#0D4147' }}>Orçamentos</h2>
-                    <p style={{ width: '900px', textAlign: 'right', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Defina seus limites, mantenha o controle.</p>
-                    <p style={{ width: '900px', textAlign: 'right', fontSize: '1.1rem' }}>Crie orçamentos personalizados para diferentes categorias (como alimentação, transporte, lazer). Acompanhe em tempo real quanto você já gastou e evite estourar o planejado.</p>
+                    <p style={{ textAlign: 'right', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Defina seus limites, mantenha o controle.</p>
+                    <p style={{ textAlign: 'right', fontSize: '1.1rem' }}>Crie orçamentos personalizados para diferentes categorias (como alimentação, transporte, lazer). Acompanhe em tempo real quanto você já gastou e evite estourar o planejado.</p>
                   </RightAlignedText>
                 </FerramentaItem>
 
                 <FerramentaItem style={{ width: '100%' }}>
-                  <LeftText style={{ width: '100%' }}>
+                  <LeftText style={{ width: '100%', padding: '20px' }}>
                     <h2 style={{ textAlign: 'left', fontSize: '3rem', color: '#0D4147' }}>Metas Financeiras</h2>
-                    <p style={{ width: '800px', textAlign: 'left', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Transforme sonhos em planos concretos.</p>
-                    <p style={{ width: '800px', textAlign: 'left', fontSize: '1.1rem', color: '#000000' }}>Estabeleça seus objetivos financeiros, seja uma viagem, a entrada de um imóvel ou uma reserva de emergência. Monitore seu progresso e mantenha a motivação para alcançar o que deseja.</p>
+                    <p style={{ textAlign: 'left', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Transforme sonhos em planos concretos.</p>
+                    <p style={{ textAlign: 'left', fontSize: '1.1rem', color: '#000000' }}>Estabeleça seus objetivos financeiros, seja uma viagem, a entrada de um imóvel ou uma reserva de emergência. Monitore seu progresso e mantenha a motivação para alcançar o que deseja.</p>
                   </LeftText>
                   <RightImage style={{ width: '100%' }}>
                     <OpacityImageRight src="src\assets\moneyGraph.png" alt="Metas Financeiras" />
@@ -371,10 +370,10 @@ function App() {
                   <LeftImage style={{ width: '100%' }}>
                     <OpacityImageLeft src="src\assets\womanTalk.png" alt="Feedback" />
                   </LeftImage>
-                  <RightAlignedText style={{ width: '100%' }}>
+                  <RightAlignedText style={{ width: '100%', padding: '20px' }}>
                     <h2 style={{ textAlign: 'right', fontSize: '3rem', color: '#0D4147' }}>Feedbacks e Sugestões</h2>
-                    <p style={{ width: '900px', textAlign: 'right', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Decisões mais inteligentes para o seu dinheiro.</p>
-                    <p style={{ width: '900px', textAlign: 'right', fontSize: '1.1rem' }}>Receba análises sobre seus hábitos financeiros e sugestões práticas da Wall&Tea. Descubra oportunidades de economia e entenda como otimizar o uso do seu dinheiro com base nos seus próprios dados.</p>
+                    <p style={{ textAlign: 'right', fontSize: '1.5rem', color: '#108886', fontStyle: 'italic' }}>Decisões mais inteligentes para o seu dinheiro.</p>
+                    <p style={{ textAlign: 'right', fontSize: '1.1rem' }}>Receba análises sobre seus hábitos financeiros e sugestões práticas da Wall&Tea. Descubra oportunidades de economia e entenda como otimizar o uso do seu dinheiro com base nos seus próprios dados.</p>
                   </RightAlignedText>
                 </FerramentaItem>
               </FerramentasSection>
