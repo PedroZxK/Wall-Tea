@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { styled } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 // Estilos usando styled-components
 const HomeContainer = styled.div`
@@ -26,10 +30,9 @@ const WelcomeText = styled.p`
   line-height: 1.5;
 `;
 
-const HoyolabImage = styled.img`
-  max-width: 80%;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+const ChartContainer = styled.div`
+  width: 80%;
+  max-width: 600px;
   margin-bottom: 30px;
 `;
 
@@ -45,13 +48,32 @@ const LogoutButton = styled.button`
 
   &:hover {
     background-color: #c82333;
-  }
+}
 `;
+
+// Função placeholder para buscar os dados das despesas do seu backend
+const fetchExpenses = async () => {
+  // Substitua esta simulação pela sua chamada real à API
+  console.log("Home: Simulando busca de dados das despesas...");
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve([
+        { category: 'Alimentação', value: 480 },
+        { category: 'Internet', value: 100 },
+        { category: 'Luz', value: 90 },
+        { category: 'Lazer', value: 100 },
+        { category: 'Transporte', value: 140 },
+        { category: 'Saúde', value: 50 },
+      ]);
+    }, 1000); // Simula um pequeno delay da chamada à API
+  });
+};
 
 function Home() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expensesData, setExpensesData] = useState(null);
 
   useEffect(() => {
     document.title = 'Home - Wall & Tea';
@@ -61,12 +83,22 @@ function Home() {
     if (token) {
       setIsLoggedIn(true);
       console.log("Home: Usuário autenticado. Token encontrado:", token);
+      // Buscar os dados das despesas APENAS se o usuário estiver logado
+      fetchExpenses()
+        .then((data) => {
+          setExpensesData(data);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Home: Erro ao buscar dados das despesas:", error);
+          setLoading(false);
+        });
     } else {
       setIsLoggedIn(false);
+      setLoading(false);
       console.log("Home: Usuário não autenticado, redirecionando para /login");
       navigate('/login');
     }
-    setLoading(false);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -76,10 +108,40 @@ function Home() {
     navigate('/login');
   };
 
+  // Prepara os dados para o gráfico
+  const chartData = expensesData
+    ? {
+      labels: expensesData.map((expense) => expense.category),
+      datasets: [
+        {
+          label: 'Despesas por Categoria',
+          data: expensesData.map((expense) => expense.value),
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
+          ],
+          borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+          ],
+          borderWidth: 1,
+        },
+      ],
+    }
+    : null;
+
   if (loading) {
     return (
       <HomeContainer>
-        <p>Carregando...</p>
+        <p>Carregando dados das despesas...</p>
       </HomeContainer>
     );
   }
@@ -91,14 +153,15 @@ function Home() {
 
   return (
     <HomeContainer>
-      <WelcomeTitle>Bem-vindo(a) à Home!</WelcomeTitle>
+      <WelcomeTitle>Visão Geral de Despesas</WelcomeTitle>
       <WelcomeText>
-        O jogo.
+        Aqui está um resumo visual das suas despesas por categoria.
       </WelcomeText>
-      <HoyolabImage
-        src="https://upload-os-bbs.hoyolab.com/upload/2024/09/28/372328086/fba9b58c6ff1766b4f59a536535421d8_957607481687062502.png?x-oss-process=image%2Fresize%2Cs_1000%2Fauto-orient%2C0%2Finterlace%2C1%2Fformat%2Cwebp%2Fquality%2Cq_70"
-        alt="Imagem da Página Home"
-      />
+      {expensesData && (
+        <ChartContainer>
+          <Pie data={chartData} />
+        </ChartContainer>
+      )}
       <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
     </HomeContainer>
   );
