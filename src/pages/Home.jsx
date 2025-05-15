@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { styled, createGlobalStyle } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
-import { color } from 'chart.js/helpers';
+import TransactionTable from './TransactionTable';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -150,11 +150,11 @@ const Despesas = styled.div`
 `;
 
 const HomeContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
 `;
 
 const ChartContainer = styled.div`
@@ -168,39 +168,49 @@ const ChartContainer = styled.div`
 `;
 
 const LogoutButton = styled.button`
-    background-color: #dc3545;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
+  background-color: #dc3545;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
 
-    &:hover {
-        background-color: #c82333;
-    }
+  &:hover {
+    background-color: #c82333;
+  }
 `;
 
 const fetchExpenses = async (userId) => {
-  console.log("Home: Buscando dados das despesas e saldo da API...");
-  try {
-    // Busca despesas
-    const expensesResponse = await fetch(`http://localhost:3000/api/expenses?userId=${userId}`);
-    if (!expensesResponse.ok) {
-      throw new Error(`HTTP error! status: ${expensesResponse.status}`);
-    }
-    const expensesData = await expensesResponse.json();
-    const formattedExpensesData = expensesData.map(item => ({
-      category: item.category,
-      value: item.total_spent
-    }));
+    console.log("Home: Buscando dados das despesas e saldo da API...");
+    try {
+        // Busca transações do usuário
+        const transactionsResponse = await fetch(`http://localhost:3000/api/transactions?userId=${userId}`);
+        if (!transactionsResponse.ok) {
+            throw new Error(`HTTP error! status: ${transactionsResponse.status}`);
+        }
+        const transactionsData = await transactionsResponse.json();
 
-    return formattedExpensesData;
-  } catch (error) {
-    console.error("Home: Erro ao buscar dados da API:", error);
-    throw error;
-  }
+        const categoryTotals = transactionsData.reduce((acc, transaction) => {
+            const categoryName = transaction.category_name;
+            if (!acc[categoryName]) {
+                acc[categoryName] = 0;
+            }
+            acc[categoryName] += parseFloat(transaction.amount);
+            return acc;
+        }, {});
+
+        const formattedExpensesData = Object.entries(categoryTotals).map(([category, total]) => ({
+            category,
+            value: total,
+        }));
+
+        return formattedExpensesData;
+    } catch (error) {
+        console.error("Home: Erro ao buscar dados da API:", error);
+        throw error;
+    }
 };
 
 const fetchUserSaldo = async (userId) => {
@@ -210,7 +220,7 @@ const fetchUserSaldo = async (userId) => {
       throw new Error(`Failed to fetch user data: ${userResponse.status}`);
     }
     const userData = await userResponse.json();
-    return userData.saldo; // Assumindo que a API retorna { id, nome, email, saldo }
+    return userData.saldo;
   } catch (error) {
     console.error("Error fetching user saldo:", error);
     throw error;
@@ -221,12 +231,12 @@ const fetchUserSaldo = async (userId) => {
 const fetchBudgets = async () => {
   console.log("Home: Buscando dados dos orçamentos da API...");
   try {
-    const response = await fetch('http://localhost:3000/api/budgets'); // Rota da API para budgets
+    const response = await fetch('http://localhost:3000/api/budgets');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log("Dados recebidos da API (Budgets):", data); // Log para debug
+    console.log("Dados recebidos da API (Budgets):", data);
     return data;
   } catch (error) {
     console.error("Home: Erro ao buscar dados dos orçamentos da API (Budgets):", error);
@@ -239,7 +249,7 @@ function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expensesData, setExpensesData] = useState(null);
-  const [budgetsData, setBudgetsData] = useState(null); // Novo estado para os dados de orçamento
+  const [budgetsData, setBudgetsData] = useState(null);
   const [activeSection, setActiveSection] = useState('inicio');
   const [saldo, setSaldo] = useState(null);
   const userId = localStorage.getItem('userId');
@@ -254,16 +264,15 @@ function Home() {
       setIsLoggedIn(true);
       console.log("Home: Usuário autenticado. Token encontrado:", token);
 
-      // Buscar dados
       Promise.all([
         fetchExpenses(userId),
         fetchBudgets(),
-        fetchUserSaldo(userId), // Busca o saldo do usuário
+        fetchUserSaldo(userId),
       ])
         .then(([expenses, budgets, saldoData]) => {
           setExpensesData(expenses);
           setBudgetsData(budgets);
-          setSaldo(saldoData); // Atualiza o estado com o saldo
+          setSaldo(saldoData);
           setLoading(false);
         })
         .catch((error) => {
@@ -388,7 +397,7 @@ function Home() {
           display: false,
         },
         ticks: {
-          display: false // Esta linha remove os números do eixo X
+          display: false
         },
       },
       y: {
@@ -401,7 +410,7 @@ function Home() {
           display: false,
         },
         ticks: {
-          display: false // Esta linha remove os números do eixo X
+          display: false
         },
       },
     },
@@ -520,6 +529,21 @@ function Home() {
               )}
             </Progresso>
           </Charts>
+          {activeSection === 'inicio' && (
+            <TransactionTable />
+          )}
+
+          {activeSection === 'orcamentos' && (
+            <div>
+              <h3>Orçamentos</h3>
+            </div>
+          )}
+
+          {activeSection === 'relatorios' && (
+            <div>
+              <h3>Relatórios</h3>
+            </div>
+          )}
         </MainContent>
         <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
       </HomeContainer>

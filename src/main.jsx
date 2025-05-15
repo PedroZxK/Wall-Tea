@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
+import Perfil from './pages/Perfil'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Cadastro />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/perfil" element={<Perfil />} />
         <Route path="*" element={<h1>Página não encontrada</h1>} />
       </Routes>
     </BrowserRouter>
