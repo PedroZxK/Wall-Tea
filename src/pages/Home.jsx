@@ -15,7 +15,6 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import TransactionTable from './TransactionTable';
-import { nav } from 'framer-motion/client';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels, ArcElement, LineElement, PointElement); // Registre os novos elementos
 

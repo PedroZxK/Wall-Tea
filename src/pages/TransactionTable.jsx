@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import lupaIcon from '../assets/lupa.png'; // Importe a imagem da lupa
 
-// --- Styled Components ---
+// --- Styled Components (o restante permanece o mesmo) ---
 
 const TableContainer = styled.div`
-    width: 80%;
+    width: 95%;
     margin-top: 20px;
-    box-shadow: 6px 7px 6px -4px rgba(0,0,0,0.75);
     border-radius: 10px;
     overflow: hidden;
     display: flex;
@@ -47,6 +47,13 @@ const SearchButton = styled.button`
     &:hover {
         background-color: #0d6b69;
     }
+
+    /* Adicione estilos para a imagem dentro do botão, se necessário */
+    img {
+        width: 20px; /* Ajuste o tamanho da imagem conforme necessário */
+        height: 20px;
+        filter: invert(100%); /* Para tornar a lupa branca, se ela for preta */
+    }
 `;
 
 const StyledTable = styled.table`
@@ -62,6 +69,8 @@ const TableHeader = styled.th`
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    ${props => props.isActions && 'width: 150px;'}
+    ${props => props.isCategory && 'width: 120px;'}
 `;
 
 const TableRow = styled.tr`
@@ -74,6 +83,10 @@ const TableCell = styled.td`
     padding: 10px;
     border-bottom: 1px solid #eee;
     text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: ${props => props.maxWidth || 'none'};
 `;
 
 const Button = styled.button`
@@ -92,7 +105,7 @@ const Button = styled.button`
     }
 `;
 
-const IconButton = styled.button`
+const ActionButton = styled.button`
     background-color: #108886;
     color: white;
     border: none;
@@ -104,6 +117,21 @@ const IconButton = styled.button`
 
     &:hover {
         background-color: #0d6b69;
+    }
+`;
+
+const DeleteButton = styled.button`
+    background-color: #DA4141;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.9em;
+
+    &:hover {
+        background-color: #c03030;
     }
 `;
 
@@ -169,18 +197,22 @@ const Input = styled.input`
 const TransactionTable = () => {
     const [transactions, setTransactions] = useState([]);
     const [newTransaction, setNewTransaction] = useState({
-        descricao: '',
-        entidade: '',
-        pagamento: '',
-        data: '',
-        valor_total: '',
-        categoria_id: '',
+        id: null,
+        description: '',
+        entity: '',
+        payment_method: '',
+        transaction_date: '',
+        amount: '',
+        category_id: '',
     });
     const [showModal, setShowModal] = useState(false);
     const [categorias, setCategorias] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const userId = localStorage.getItem('userId');
     const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const [isEditing, setIsEditing] = useState(false);
 
     const fetchTransactions = useCallback(async () => {
         if (userId) {
@@ -190,9 +222,14 @@ const TransactionTable = () => {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                return data;
+                const formattedData = data.map(trans => ({
+                    ...trans,
+                    transaction_date: new Date(trans.transaction_date).toISOString().split('T')[0]
+                }));
+                return formattedData;
             } catch (error) {
                 console.error("Erro ao buscar transações:", error);
+                setErrorMessage('Erro ao carregar transações. Tente novamente.');
                 throw error;
             }
         }
@@ -207,7 +244,7 @@ const TransactionTable = () => {
             setCategorias(data);
         } catch (error) {
             console.error("Erro ao buscar categorias:", error);
-            alert('Erro ao buscar categorias: ' + error.message);
+            setErrorMessage('Erro ao buscar categorias: ' + error.message);
         }
     }, []);
 
@@ -218,11 +255,11 @@ const TransactionTable = () => {
                 const data = await fetchTransactions();
                 setTransactions(data);
             } catch (error) {
-                console.error("Erro ao carregar dados:", error);
+                console.error("Erro ao carregar dados iniciais:", error);
             }
         };
         loadData();
-    }, [fetchCategorias, fetchTransactions, userId]);
+    }, [fetchCategorias, fetchTransactions]);
 
     const handleInputChange = (event) => {
         const { name, value } = event.target;
@@ -232,12 +269,59 @@ const TransactionTable = () => {
         }));
     };
 
+    const resetForm = () => {
+        setNewTransaction({
+            id: null,
+            description: '',
+            entity: '',
+            payment_method: '',
+            transaction_date: '',
+            amount: '',
+            category_id: '',
+        });
+        setIsEditing(false);
+    };
+
+    const handleOpenModalForAdd = () => {
+        resetForm();
+        setShowModal(true);
+    };
+
+    const handleOpenModalForEdit = (transaction) => {
+        setNewTransaction({
+            id: transaction.id,
+            description: transaction.description,
+            entity: transaction.entity,
+            payment_method: transaction.payment_method,
+            transaction_date: transaction.transaction_date,
+            amount: transaction.amount,
+            category_id: transaction.category_id,
+        });
+        setIsEditing(true);
+        setShowModal(true);
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
+        setSuccessMessage('');
+        setErrorMessage('');
+
         if (userId) {
             try {
-                const response = await fetch('http://localhost:3000/api/transactions', {
-                    method: 'POST',
+                let response;
+                let method;
+                let url;
+
+                if (isEditing && newTransaction.id) {
+                    method = 'PUT';
+                    url = `http://localhost:3000/api/transactions/${newTransaction.id}`;
+                } else {
+                    method = 'POST';
+                    url = 'http://localhost:3000/api/transactions';
+                }
+
+                response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -246,71 +330,127 @@ const TransactionTable = () => {
                         userId: userId,
                     }),
                 });
+
                 if (response.ok) {
-                    setNewTransaction({ descricao: '', entidade: '', pagamento: '', data: '', valor_total: '', categoria_id: '' });
                     const updatedTransactions = await fetchTransactions();
                     setTransactions(updatedTransactions);
-                    setSuccessMessage('Transação adicionada com sucesso!');
+                    setSuccessMessage(isEditing ? 'Transação atualizada com sucesso!' : 'Transação adicionada com sucesso!');
                     setTimeout(() => setSuccessMessage(''), 3000);
                     setShowModal(false);
+                    resetForm();
                 } else {
                     const errorData = await response.json();
-                    alert('Erro ao adicionar transação: ' + errorData.error);
+                    setErrorMessage('Erro ao salvar transação: ' + (errorData.error || 'Erro desconhecido'));
+                    setTimeout(() => setErrorMessage(''), 5000);
                 }
             } catch (error) {
-                alert('Erro ao adicionar transação: ' + error.message);
+                setErrorMessage('Erro na comunicação com o servidor: ' + error.message);
+                setTimeout(() => setErrorMessage(''), 5000);
             }
         } else {
-            alert('Usuário não autenticado. Por favor, faça login.');
+            setErrorMessage('Usuário não autenticado. Por favor, faça login.');
+            setTimeout(() => setErrorMessage(''), 5000);
+        }
+    };
+
+    const handleDelete = async (transactionId) => {
+        if (!window.confirm('Tem certeza que deseja excluir esta transação?')) {
+            return;
+        }
+        setSuccessMessage('');
+        setErrorMessage('');
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/transactions/${transactionId}?userId=${userId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                const updatedTransactions = await fetchTransactions();
+                setTransactions(updatedTransactions);
+                setSuccessMessage('Transação excluída com sucesso!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                const errorData = await response.json();
+                setErrorMessage('Erro ao excluir transação: ' + (errorData.error || 'Erro desconhecido'));
+                setTimeout(() => setErrorMessage(''), 5000);
+            }
+        } catch (error) {
+            setErrorMessage('Erro na comunicação com o servidor ao excluir: ' + error.message);
+            setTimeout(() => setErrorMessage(''), 5000);
         }
     };
 
     const filteredTransactions = transactions.filter(transaction =>
-        transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
+        transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaction.entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaction.payment_method.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (transaction.category_name && transaction.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
         <TableContainer>
             <SearchBarContainer>
-                <SearchInput 
-                    type="text" 
-                    placeholder="Pesquisar transações..." 
+                <SearchInput
+                    type="text"
+                    placeholder="Pesquisar transações..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <SearchButton>🔍</SearchButton>
+                <SearchButton>
+                    {/* Usando a imagem como ícone do botão */}
+                    <img src={lupaIcon} alt="Pesquisar" />
+                </SearchButton>
             </SearchBarContainer>
 
             <h3 style={{ color: '#108886', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                Transações 
-                <span 
-                    style={{ fontWeight: 'normal', cursor: 'pointer' }} 
-                    onClick={() => setShowModal(true)}
+                Transações
+                <span
+                    style={{ fontWeight: 'normal', cursor: 'pointer' }}
+                    onClick={handleOpenModalForAdd}
                 >+</span>
-                <ActionButtons>
-                    <IconButton>Editar</IconButton>
-                    <IconButton>Excluir</IconButton>
-                </ActionButtons>
             </h3>
+
+            {successMessage && (
+                <p style={{ color: 'green', marginBottom: '10px', fontWeight: 'bold' }}>
+                    {successMessage}
+                </p>
+            )}
+            {errorMessage && (
+                <p style={{ color: 'red', marginBottom: '10px', fontWeight: 'bold' }}>
+                    {errorMessage}
+                </p>
+            )}
 
             <StyledTable>
                 <TableHead>
                     <tr>
+                        <TableHeader>ID</TableHeader>
                         <TableHeader>Descrição</TableHeader>
                         <TableHeader>Entidade</TableHeader>
                         <TableHeader>Pagamento</TableHeader>
                         <TableHeader>Data</TableHeader>
                         <TableHeader>Valor Total</TableHeader>
+                        <TableHeader isCategory>Categoria</TableHeader>
+                        <TableHeader isActions>Ações</TableHeader>
                     </tr>
                 </TableHead>
                 <tbody>
                     {filteredTransactions.map(transaction => (
                         <TableRow key={transaction.id}>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell>{transaction.entity}</TableCell>
-                            <TableCell>{transaction.payment_method}</TableCell>
-                            <TableCell>{new Date(transaction.transaction_date).toLocaleDateString()}</TableCell>
-                            <TableCell>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}</TableCell>
+                            <TableCell maxWidth="60px">{transaction.id}</TableCell>
+                            <TableCell maxWidth="150px">{transaction.description}</TableCell>
+                            <TableCell maxWidth="120px">{transaction.entity}</TableCell>
+                            <TableCell maxWidth="100px">{transaction.payment_method}</TableCell>
+                            <TableCell maxWidth="100px">{transaction.transaction_date}</TableCell>
+                            <TableCell maxWidth="100px">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}</TableCell>
+                            <TableCell maxWidth="120px">{transaction.category_name}</TableCell>
+                            <TableCell maxWidth="180px">
+                                <ActionButtons>
+                                    <ActionButton onClick={() => handleOpenModalForEdit(transaction)}>Editar</ActionButton>
+                                    <DeleteButton onClick={() => handleDelete(transaction.id)}>Excluir</DeleteButton>
+                                </ActionButtons>
+                            </TableCell>
                         </TableRow>
                     ))}
                 </tbody>
@@ -319,68 +459,68 @@ const TransactionTable = () => {
             {showModal && (
                 <ModalOverlay>
                     <ModalContent>
-                        <CloseButton onClick={() => setShowModal(false)}>×</CloseButton>
-                        <h4>Adicionar Nova Transação</h4>
+                        <CloseButton onClick={() => { setShowModal(false); resetForm(); }}>×</CloseButton>
+                        <h4>{isEditing ? 'Editar Transação' : 'Adicionar Nova Transação'}</h4>
                         <form onSubmit={handleSubmit}>
                             <InputGroup>
-                                <Label htmlFor="descricao">Descrição:</Label>
+                                <Label htmlFor="description">Descrição:</Label>
                                 <Input
                                     type="text"
-                                    id="descricao"
-                                    name="descricao"
-                                    value={newTransaction.descricao}
+                                    id="description"
+                                    name="description"
+                                    value={newTransaction.description}
                                     onChange={handleInputChange}
                                     required
                                 />
                             </InputGroup>
                             <InputGroup>
-                                <Label htmlFor="entidade">Entidade:</Label>
+                                <Label htmlFor="entity">Entidade:</Label>
                                 <Input
                                     type="text"
-                                    id="entidade"
-                                    name="entidade"
-                                    value={newTransaction.entidade}
+                                    id="entity"
+                                    name="entity"
+                                    value={newTransaction.entity}
                                     onChange={handleInputChange}
                                 />
                             </InputGroup>
                             <InputGroup>
-                                <Label htmlFor="pagamento">Pagamento:</Label>
+                                <Label htmlFor="payment_method">Método de Pagamento:</Label>
                                 <Input
                                     type="text"
-                                    id="pagamento"
-                                    name="pagamento"
-                                    value={newTransaction.pagamento}
+                                    id="payment_method"
+                                    name="payment_method"
+                                    value={newTransaction.payment_method}
                                     onChange={handleInputChange}
                                 />
                             </InputGroup>
                             <InputGroup>
-                                <Label htmlFor="data">Data:</Label>
+                                <Label htmlFor="transaction_date">Data:</Label>
                                 <Input
                                     type="date"
-                                    id="data"
-                                    name="data"
-                                    value={newTransaction.data}
+                                    id="transaction_date"
+                                    name="transaction_date"
+                                    value={newTransaction.transaction_date}
                                     onChange={handleInputChange}
                                     required
                                 />
                             </InputGroup>
                             <InputGroup>
-                                <Label htmlFor="valor_total">Valor Total:</Label>
+                                <Label htmlFor="amount">Valor Total:</Label>
                                 <Input
                                     type="number"
-                                    id="valor_total"
-                                    name="valor_total"
-                                    value={newTransaction.valor_total}
+                                    id="amount"
+                                    name="amount"
+                                    value={newTransaction.amount}
                                     onChange={handleInputChange}
                                     required
                                 />
                             </InputGroup>
                             <InputGroup>
-                                <Label htmlFor="categoria_id">Categoria:</Label>
+                                <Label htmlFor="category_id">Categoria:</Label>
                                 <select
-                                    id="categoria_id"
-                                    name="categoria_id"
-                                    value={newTransaction.categoria_id}
+                                    id="category_id"
+                                    name="category_id"
+                                    value={newTransaction.category_id}
                                     onChange={handleInputChange}
                                     required
                                     style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
@@ -393,12 +533,7 @@ const TransactionTable = () => {
                                     ))}
                                 </select>
                             </InputGroup>
-                            {successMessage && (
-                                <p style={{ color: 'green', marginBottom: '10px', fontWeight: 'bold' }}>
-                                    {successMessage}
-                                </p>
-                            )}
-                            <Button type="submit">Adicionar Transação</Button>
+                            <Button type="submit">{isEditing ? 'Salvar Alterações' : 'Adicionar Transação'}</Button>
                         </form>
                     </ModalContent>
                 </ModalOverlay>
