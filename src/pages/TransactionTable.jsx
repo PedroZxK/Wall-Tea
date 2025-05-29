@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 
+// --- Styled Components ---
+
 const TableContainer = styled.div`
     width: 80%;
     margin-top: 20px;
@@ -10,6 +12,41 @@ const TableContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    background-color: #fff;
+    padding: 20px;
+`;
+
+const SearchBarContainer = styled.div`
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+`;
+
+const SearchInput = styled.input`
+    flex: 1;
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    border-radius: 25px;
+`;
+
+const SearchButton = styled.button`
+    background-color: #108886;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 40px;
+    height: 40px;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:hover {
+        background-color: #0d6b69;
+    }
 `;
 
 const StyledTable = styled.table`
@@ -53,6 +90,27 @@ const Button = styled.button`
     &:hover {
         background-color: #0d6b69;
     }
+`;
+
+const IconButton = styled.button`
+    background-color: #108886;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.9em;
+
+    &:hover {
+        background-color: #0d6b69;
+    }
+`;
+
+const ActionButtons = styled.div`
+    display: flex;
+    gap: 10px;
+    align-items: center;
 `;
 
 const ModalOverlay = styled.div`
@@ -106,6 +164,8 @@ const Input = styled.input`
     box-sizing: border-box;
 `;
 
+// --- Component Function ---
+
 const TransactionTable = () => {
     const [transactions, setTransactions] = useState([]);
     const [newTransaction, setNewTransaction] = useState({
@@ -114,15 +174,13 @@ const TransactionTable = () => {
         pagamento: '',
         data: '',
         valor_total: '',
-        categoria_id: '', // Adicione o campo categoria_id
+        categoria_id: '',
     });
     const [showModal, setShowModal] = useState(false);
     const [categorias, setCategorias] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const userId = localStorage.getItem('userId');
     const [successMessage, setSuccessMessage] = useState('');
-
-
-    // Função para buscar as categorias do banco de dado
 
     const fetchTransactions = useCallback(async () => {
         if (userId) {
@@ -146,7 +204,7 @@ const TransactionTable = () => {
             const response = await fetch('http://localhost:3000/api/categorias');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
-            setCategorias(data); // <-- necessário
+            setCategorias(data);
         } catch (error) {
             console.error("Erro ao buscar categorias:", error);
             alert('Erro ao buscar categorias: ' + error.message);
@@ -166,11 +224,10 @@ const TransactionTable = () => {
         loadData();
     }, [fetchCategorias, fetchTransactions, userId]);
 
-
     const handleInputChange = (event) => {
         const { name, value } = event.target;
-        setNewTransaction(prevState => ({
-            ...prevState,
+        setNewTransaction(prev => ({
+            ...prev,
             [name]: value,
         }));
     };
@@ -190,30 +247,50 @@ const TransactionTable = () => {
                     }),
                 });
                 if (response.ok) {
-                    setNewTransaction({ descricao: '', entidade: '', pagamento: '', data: '', valor_total: '' });
-                    const updatedTransactions = await fetchTransactions(userId);
+                    setNewTransaction({ descricao: '', entidade: '', pagamento: '', data: '', valor_total: '', categoria_id: '' });
+                    const updatedTransactions = await fetchTransactions();
                     setTransactions(updatedTransactions);
                     setSuccessMessage('Transação adicionada com sucesso!');
-                    setTimeout(() => setSuccessMessage(''), 3000); // limpa após 3 segundos
+                    setTimeout(() => setSuccessMessage(''), 3000);
+                    setShowModal(false);
                 } else {
                     const errorData = await response.json();
-                    console.error("Erro ao adicionar transação:", errorData);
                     alert('Erro ao adicionar transação: ' + errorData.error);
                 }
             } catch (error) {
-                console.error("Erro ao enviar transação:", error);
                 alert('Erro ao adicionar transação: ' + error.message);
             }
         } else {
-            console.error("Usuário não autenticado.");
             alert('Usuário não autenticado. Por favor, faça login.');
         }
     };
 
+    const filteredTransactions = transactions.filter(transaction =>
+        transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <TableContainer>
-            <h3 style={{ color: '#108886', fontWeight: 'bold' }}>
-                Transações <span style={{ fontWeight: 'normal', cursor: 'pointer' }} onClick={() => setShowModal(true)}>+</span>
+            <SearchBarContainer>
+                <SearchInput 
+                    type="text" 
+                    placeholder="Pesquisar transações..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <SearchButton>🔍</SearchButton>
+            </SearchBarContainer>
+
+            <h3 style={{ color: '#108886', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                Transações 
+                <span 
+                    style={{ fontWeight: 'normal', cursor: 'pointer' }} 
+                    onClick={() => setShowModal(true)}
+                >+</span>
+                <ActionButtons>
+                    <IconButton>Editar</IconButton>
+                    <IconButton>Excluir</IconButton>
+                </ActionButtons>
             </h3>
 
             <StyledTable>
@@ -227,7 +304,7 @@ const TransactionTable = () => {
                     </tr>
                 </TableHead>
                 <tbody>
-                    {transactions.map(transaction => (
+                    {filteredTransactions.map(transaction => (
                         <TableRow key={transaction.id}>
                             <TableCell>{transaction.description}</TableCell>
                             <TableCell>{transaction.entity}</TableCell>

@@ -173,7 +173,7 @@ const Financeiro = styled.div`
 
 const Receitas = styled.div`
     text-align: left;
-    background-color: #108886;
+    background-color: #DA4141;
     color: #FFFFFF;
     padding: 15px 20px;
     border-radius: 15px;
@@ -185,7 +185,7 @@ const Receitas = styled.div`
 
 const Despesas = styled.div`
     text-align: left;
-    background-color: #DA4141;
+    background-color: #108886;
     color: #FFFFFF;
     padding: 15px 20px;
     border-radius: 15px;
@@ -662,7 +662,7 @@ function Home() {
                 display: true,
                 anchor: 'end',
                 align: 'top',
-                formatter: function(value) {
+                formatter: function (value) {
                     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
                 },
                 color: '#0D4147',
@@ -684,7 +684,7 @@ function Home() {
                 },
                 ticks: {
                     padding: 10,
-                    callback: function(value) {
+                    callback: function (value) {
                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
                     }
                 },
@@ -775,7 +775,7 @@ function Home() {
                 display: true,
                 anchor: 'end',
                 align: 'end',
-                formatter: function(value, context) {
+                formatter: function (value, context) {
                     const dataIndex = context.dataIndex;
                     const budgeted = budgetsChartDisplayData[dataIndex]?.budgeted || 0;
                     const spent = budgetsChartDisplayData[dataIndex]?.spent || 0;
@@ -799,7 +799,7 @@ function Home() {
                     font: { size: 14 }
                 },
                 ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
                     },
                     padding: 10,
@@ -867,7 +867,7 @@ function Home() {
             },
             tooltip: {
                 callbacks: {
-                    label: function(context) {
+                    label: function (context) {
                         const label = context.label || '';
                         const value = context.parsed || 0;
                         return `${label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}`;
@@ -917,7 +917,7 @@ function Home() {
             },
             tooltip: {
                 callbacks: {
-                    label: function(context) {
+                    label: function (context) {
                         const label = context.label || '';
                         const value = context.parsed || 0;
                         return `${label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}`;
@@ -984,7 +984,7 @@ function Home() {
                 mode: 'index',
                 intersect: false,
                 callbacks: {
-                    label: function(context) {
+                    label: function (context) {
                         let label = context.dataset.label || '';
                         if (label) {
                             label += ': ';
@@ -1019,7 +1019,7 @@ function Home() {
                     font: { size: 14 }
                 },
                 ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
                     }
                 }
@@ -1063,7 +1063,7 @@ function Home() {
             },
             tooltip: {
                 callbacks: {
-                    label: function(context) {
+                    label: function (context) {
                         let label = context.dataset.label || '';
                         if (label) {
                             label += ': ';
@@ -1099,7 +1099,7 @@ function Home() {
                     font: { size: 14 }
                 },
                 ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
                     }
                 }
@@ -1152,12 +1152,6 @@ function Home() {
                             Relatórios
                         </NavItem>
                         <NavItem
-                            onClick={() => handleNavClick('transacoes')}
-                            className={activeSection === 'transacoes' ? 'active' : ''}
-                        >
-                            Transações
-                        </NavItem>
-                        <NavItem
                             onClick={() => handleNavClick('orcamentos')}
                             className={activeSection === 'orcamentos' ? 'active' : ''}
                         >
@@ -1177,10 +1171,10 @@ function Home() {
                                 )}
                                 <Financeiro>
                                     <Receitas>
-                                        <p>Receitas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}</p>
+                                        <p>Despesas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}</p>
                                     </Receitas>
                                     <Despesas>
-                                        <p>Despesas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpenses)}</p>
+                                        <p>Receitas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpenses)}</p>
                                     </Despesas>
                                 </Financeiro>
                             </TopRow>
@@ -1287,12 +1281,6 @@ function Home() {
                         <div>
                             <h3>Orçamentos</h3>
                             {/* Você pode adicionar seu componente de gerenciamento de orçamento aqui */}
-                        </div>
-                    )}
-                     {activeSection === 'transacoes' && (
-                        <div>
-                            <h3>Transações</h3>
-                            {/* Você pode adicionar seu componente de lista completa de transações aqui */}
                         </div>
                     )}
                 </MainContent>

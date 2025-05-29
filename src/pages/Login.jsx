@@ -2,45 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { styled, createGlobalStyle } from 'styled-components';
 
-// Estilos globais para o box-sizing e a fonte
 const GlobalStyle = createGlobalStyle`
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
   body {
     font-family: 'Inter', sans-serif;
     margin: 0;
     padding: 0;
-  }
-  html, body {
-    height: 100%;
     background-color: #108886;
   }
-  #root {
-    padding: 0;
+  html, body, #root {
+    height: 100%;
+    width: 100%;
   }
 `;
 
-// Estilos usando styled-components
 const CadastroContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 0;
-  width: 100%;
 `;
 
 const FormContainer = styled.div`
-  background-color: #ffffff;
+  background-color: #fff;
   padding: 60px;
   border-radius: 90px;
   width: 500px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
 const Title = styled.h2`
-  color: #000000;
+  color: #000;
   font-weight: bold;
   text-align: center;
   margin-bottom: 20px;
@@ -48,14 +40,14 @@ const Title = styled.h2`
 
 const InputGroup = styled.div`
   margin-bottom: 15px;
+  text-align: left;
 `;
 
 const Label = styled.label`
-  color: #000000;
+  color: #000;
   display: block;
   margin-bottom: 5px;
   font-size: 14px;
-  text-align: left;
 `;
 
 const Input = styled.input`
@@ -63,8 +55,8 @@ const Input = styled.input`
   padding: 10px;
   border: 1px solid #656ed3;
   border-radius: 15px;
-  color: #000000;
-  background-color: #ffffff;
+  color: #000;
+  background-color: #fff;
   font-size: 16px;
   transition: border-color 0.5s ease;
 
@@ -77,7 +69,7 @@ const Input = styled.input`
 
 const Button = styled.button`
   background-color: #0d4147;
-  color: #ffffff;
+  color: #fff;
   padding: 12px 20px;
   border: none;
   border-radius: 50px;
@@ -93,7 +85,7 @@ const Button = styled.button`
 `;
 
 const FooterText = styled.p`
-  color: #000000;
+  color: #000;
   text-align: center;
   margin-top: 20px;
   font-size: 14px;
@@ -101,7 +93,7 @@ const FooterText = styled.p`
 
 const LoginLink = styled(Link)`
   font-weight: bold;
-  color: #000000;
+  color: #000;
   text-decoration: none;
   transition: transform 0.3s ease;
 
@@ -135,27 +127,24 @@ function Login() {
     try {
       const response = await fetch('http://localhost:3000/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, senha }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMensagem(data.mensagem);
         console.log('Usuário logado:', data.usuario);
 
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.usuario)); // Salvar dados do usuário
+        localStorage.setItem('user', JSON.stringify(data.usuario));
+        localStorage.setItem('userId', data.usuario.id);
 
-        alert('Login realizado com sucesso! Você será redirecionado para a página inicial.');
+        alert('Login realizado com sucesso! Você será redirecionado.');
         navigate('/home');
       } else {
         setErro(data.erro || 'Credenciais inválidas. Tente novamente.');
       }
-
     } catch (error) {
       setErro('Erro ao conectar com o servidor.');
       console.error('Erro ao fazer login:', error);
@@ -167,27 +156,25 @@ function Login() {
       <GlobalStyle />
       <CadastroContainer>
         <FormContainer>
-          <Title>Bem-vindo (a) de volta!</Title>
+          <Title>Bem-vindo(a) de volta!</Title>
           {mensagem && <p style={{ color: 'green' }}>{mensagem}</p>}
           {erro && <p style={{ color: 'red' }}>{erro}</p>}
           <form onSubmit={handleLogin}>
             <InputGroup>
-              <Label htmlFor="email">Endereço de Email:</Label>
+              <Label>Email:</Label>
               <Input
                 type="email"
-                id="email"
-                placeholder="Insira o seu email"
+                placeholder="Insira seu email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </InputGroup>
             <InputGroup>
-              <Label htmlFor="senha">Senha:</Label>
+              <Label>Senha:</Label>
               <Input
                 type="password"
-                id="senha"
-                placeholder="Insira a sua senha"
+                placeholder="Insira sua senha"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required
