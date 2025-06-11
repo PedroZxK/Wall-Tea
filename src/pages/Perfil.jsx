@@ -1,21 +1,30 @@
+/* eslint-disable no-irregular-whitespace */
 import React, { useState, useEffect, useCallback } from 'react';
 import { styled, createGlobalStyle, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import avatarPadrao from '../assets/avatar.png'; // Garanta que este caminho está correto
-import lapisIcon from '../assets/lapis.png';     // Garanta que este caminho está correto
-import setaVoltar from '../assets/seta.png';     // Garanta que este caminho está correto
+import avatarPadrao from '../assets/avatar.png';
+import lapisIcon from '../assets/lapis.png';
+import setaVoltar from '../assets/seta.png';
+import ModalAlterarSenha from './ModalAlterarSenha';
 
 // Animação para o spinner de carregamento
 const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+// 1. NOVA ANIMAÇÃO para o botão de salvar aparecer
+const slideIn = keyframes`
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateX(20px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateX(0);
   }
 `;
 
-// Estilos Globais para uma base consistente
 const GlobalStyle = createGlobalStyle`
     * {
         box-sizing: border-box;
@@ -41,8 +50,8 @@ const GlobalStyle = createGlobalStyle`
         max-width: 100%;
     }
 `;
-// --- Styled Components Aprimorados ---
 
+// --- Styled Components ---
 const PerfilContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -66,18 +75,23 @@ const BackButton = styled.img`
   width: 28px;
   height: 28px;
   cursor: pointer;
-  filter: invert(100%);
+  filter: brightness(0) invert(1);
   transition: transform 0.3s ease;
-
   &:hover {
     transform: scale(1.1) translateX(-3px);
   }
 `;
 
+const EditIcon = styled.img`
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+`;
+
 const ProfileContent = styled.div`
   width: 100%;
   max-width: 600px;
-  margin-top: -100px; // Puxa o conteúdo para cima, sobrepondo o banner
+  margin-top: -100px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -114,20 +128,12 @@ const EditButton = styled.label`
   cursor: pointer;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
-
   &:hover {
     background-color: #0d6b69;
     transform: scale(1.1);
   }
 `;
 
-const EditIcon = styled.img`
-  width: 20px;
-  height: 20px;
-  filter: invert(100%);
-`;
-
-// Esconde o input de arquivo, que é ativado pela label (EditButton)
 const FileInput = styled.input`
   display: none;
 `;
@@ -140,7 +146,7 @@ const ProfileCard = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 25px; // Aumenta o espaçamento entre os campos
+  gap: 25px;
 `;
 
 const InputGroup = styled.div`
@@ -164,11 +170,6 @@ const Input = styled.input`
   color: #333;
   background-color: #FDFDFD;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-
-  &::placeholder {
-    color: #A0AEC0;
-  }
-
   &:focus {
     outline: none;
     border-color: #108886;
@@ -176,27 +177,39 @@ const Input = styled.input`
   }
 `;
 
+// 2. ALTERAÇÃO NO CONTAINER: Ele agora é sempre space-between
 const BottomActions = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* Sempre space-between */
   align-items: center;
   width: 100%;
   margin-top: 20px;
 `;
 
-const LogoutText = styled.span`
-  color: #E53E3E;
+// 3. ALTERAÇÃO NO BOTÃO: Recebe a prop 'hasChanges' para controlar a margem
+const ChangePasswordButton = styled.button`
+  background: none;
+  border: 1px solid #108886;
+  color: #108886;
+  padding: 12px 20px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.95em;
   font-weight: 600;
-  transition: color 0.3s ease, transform 0.2s ease;
+  font-size: 1em;
+  transition: all 0.4s ease-in-out;
+
+  /* Se não houver mudanças, a margem automática o centraliza. */
+  /* Se houver, a margem vira 0 e ele "desliza" para a esquerda. */
+  margin-left: ${props => props.hasChanges ? '0' : 'auto'};
+  margin-right: ${props => props.hasChanges ? '0' : 'auto'};
 
   &:hover {
-    color: #C53030;
-    transform: translateY(-1px);
+    background-color: rgba(16, 136, 134, 0.1);
+    border-color: #0d6b69;
   }
 `;
 
+// 4. ALTERAÇÃO NO BOTÃO: Aplica a animação de entrada
 const SaveButton = styled.button`
   background-color: #108886;
   color: #FFFFFF;
@@ -207,229 +220,240 @@ const SaveButton = styled.button`
   font-size: 1em;
   font-weight: 700;
   box-shadow: 0 4px 10px rgba(16, 136, 134, 0.3);
-  transition: all 0.3s ease;
+  
+  /* Animação aplicada quando o botão é renderizado */
+  animation: ${slideIn} 0.4s ease-out forwards;
 
+  transition: all 0.3s ease;
   &:hover {
     background-color: #0d6b69;
     transform: translateY(-3px);
-    box-shadow: 0 6px 14px rgba(16, 136, 134, 0.35);
   }
-  &:active {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(16, 136, 134, 0.3);
+`;
+
+const LogoutText = styled.span`
+  color: #E53E3E;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 600;
+  margin-top: 30px;
+  transition: color 0.3s ease;
+  &:hover {
+    color: #C53030;
   }
 `;
 
 const Message = styled.p`
-  padding: 12px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  font-weight: 500;
-  color: #fff;
-  background-color: ${props => props.type === 'success' ? '#2F855A' : '#C53030'};
-  text-align: center;
-  width: 100%;
-  opacity: ${props => props.show ? 1 : 0};
-  transform: ${props => props.show ? 'translateY(0)' : 'translateY(-20px)'};
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #fff;
+  background-color: ${props => props.type === 'success' ? '#2F855A' : '#C53030'};
+  text-align: center;
+  width: 100%;
+  opacity: ${props => props.show ? 1 : 0};
+  transform: ${props => props.show ? 'translateY(0)' : 'translateY(-20px)'};
+  transition: opacity 0.3s ease, transform 0.3s ease;
 `;
 
 const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 `;
 
 const Spinner = styled.div`
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border-left-color: #108886;
-  animation: ${spin} 1s linear infinite;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #108886;
+  animation: ${spin} 1s linear infinite;
 `;
 
-
 function Perfil() {
-    const navigate = useNavigate();
-    const [nome, setNome] = useState('');
-    const [email, setEmail] = useState('');
-    const [senha, setSenha] = useState('');
-    const [fotoPerfil, setFotoPerfil] = useState(avatarPadrao);
-    const [novaFoto, setNovaFoto] = useState(null);
-    const [userData, setUserData] = useState(null);
-    const [message, setMessage] = useState({ text: '', type: '', show: false });
+  const navigate = useNavigate();
 
-    const showMessage = (text, type) => {
-        setMessage({ text, type, show: true });
-        setTimeout(() => {
-            setMessage(m => ({ ...m, show: false }));
-        }, 4000);
-    };
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
 
-    const handleVoltar = () => {
-        navigate('/home');
-    };
+  const [originalNome, setOriginalNome] = useState('');
+  const [originalEmail, setOriginalEmail] = useState('');
 
-    const handleLogout = useCallback(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('user');
-        navigate('/login');
-    }, [navigate]);
+  const [fotoPerfil, setFotoPerfil] = useState(avatarPadrao);
+  const [novaFoto, setNovaFoto] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [message, setMessage] = useState({ text: '', type: '', show: false });
+  const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
 
-    useEffect(() => {
-        document.title = 'Meu Perfil - Wall & Tea';
-        const storedUser = localStorage.getItem('user');
-        
-        if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser);
-                setUserData(user);
-                setNome(user.nome || '');
-                setEmail(user.email || '');
-                setSenha(''); // Manter vazio por segurança
+  const showMessage = (text, type) => {
+    setMessage({ text, type, show: true });
+    setTimeout(() => setMessage(m => ({ ...m, show: false })), 4000);
+  };
+  const handleVoltar = () => navigate('/home');
+  const handleLogout = useCallback((isError = false) => {
+    localStorage.clear();
+    if (!isError) navigate('/login');
+  }, [navigate]);
 
-                // --- CORREÇÃO PRINCIPAL (1) ---
-                // Agora, lemos a 'fotoUrl' que o login salvou. Simples e direto.
-                if (user.fotoUrl) {
-                    setFotoPerfil(user.fotoUrl);
-                } else {
-                    setFotoPerfil(avatarPadrao);
-                }
+  useEffect(() => {
+    document.title = 'Meu Perfil - Wall & Tea';
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setUserData(user);
 
-            } catch (error) {
-                console.error('Erro ao processar dados do usuário:', error);
-                handleLogout();
-            }
+        setNome(user.nome || '');
+        setEmail(user.email || '');
+        setOriginalNome(user.nome || '');
+        setOriginalEmail(user.email || '');
+
+        if (user.foto) {
+          if (user.foto.type === 'Buffer' && user.foto.data) {
+            const base64String = btoa(String.fromCharCode(...new Uint8Array(user.foto.data)));
+            setFotoPerfil(`data:image/jpeg;base64,${base64String}`);
+          } else if (typeof user.foto === 'string' && user.foto.startsWith('data:image')) {
+            setFotoPerfil(user.foto);
+          } else {
+            setFotoPerfil(avatarPadrao);
+          }
         } else {
-            navigate('/login');
+          setFotoPerfil(avatarPadrao);
         }
-    }, [navigate, handleLogout]);
-
-    const handleEditarFoto = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setNovaFoto(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFotoPerfil(reader.result); // Mostra a pré-visualização da imagem
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
-    const handleSalvarPerfil = async () => {
-        if (!userData || !userData.id) {
-            showMessage('Dados do usuário não encontrados.', 'error');
-            return;
-        }
-    
-        const formData = new FormData();
-        formData.append('nome', nome);
-        formData.append('email', email);
-        if (senha) {
-            formData.append('senha', senha);
-        }
-        // --- CORREÇÃO PRINCIPAL (2) ---
-        // O nome do campo deve ser 'foto', como o backend (multer) espera.
-        if (novaFoto) {
-            formData.append('foto', novaFoto);
-        }
-    
-        try {
-            // Se você colocou a rota PUT em auth.js, a URL deve ser:
-            // `http://localhost:3000/auth/usuarios/${userData.id}`
-            const response = await fetch(`http://localhost:3000/auth/usuarios/${userData.id}`, {
-                method: 'PUT',
-                // Para FormData, o browser define o 'Content-Type' automaticamente.
-                // Não adicione 'Content-Type': 'application/json' aqui!
-                body: formData,
-            });
-    
-            const updatedData = await response.json();
-    
-            if (response.ok) {
-                // O backend agora retorna o usuário atualizado dentro de uma chave 'usuario'
-                const userToSave = updatedData.usuario;
-                
-                // Atualiza o localStorage com os dados mais recentes do servidor
-                localStorage.setItem('user', JSON.stringify(userToSave)); 
-                setUserData(userToSave);
-
-                // Atualiza os estados do formulário
-                setNome(userToSave.nome);
-                setEmail(userToSave.email);
-
-                // --- CORREÇÃO PRINCIPAL (3) ---
-                // Atualiza a imagem de perfil com a nova URL retornada pelo backend
-                if (userToSave.fotoUrl) {
-                    setFotoPerfil(userToSave.fotoUrl);
-                }
-
-                setSenha('');
-                setNovaFoto(null); // Limpa o arquivo da nova foto
-                showMessage('Perfil atualizado com sucesso!', 'success');
-
-            } else {
-                showMessage(updatedData.erro || 'Erro ao atualizar perfil.', 'error');
-            }
-        } catch (error) {
-            console.error('Erro de conexão ao atualizar perfil:', error);
-            showMessage('Não foi possível conectar ao servidor.', 'error');
-        }
-    };
-    
-    if (!userData) {
-        return (
-            <LoadingContainer>
-                <Spinner />
-            </LoadingContainer>
-        );
+      } catch (error) {
+        console.error('Erro ao processar dados do usuário:', error);
+        handleLogout(true);
+      }
+    } else {
+      navigate('/login');
     }
+  }, [navigate, handleLogout]);
 
+  const handleEditarFoto = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setNovaFoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoPerfil(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSalvarPerfil = async () => {
+    // ... lógica de salvar permanece a mesma ...
+    if (!userData || !userData.id) {
+      showMessage('Dados do usuário não encontrados.', 'error');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('nome', nome);
+    formData.append('email', email);
+    if (novaFoto) {
+      formData.append('fotoPerfil', novaFoto);
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/usuarios/${userData.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      const updatedData = await response.json();
+      if (response.ok) {
+        const userToSave = updatedData;
+        localStorage.setItem('user', JSON.stringify(userToSave));
+        setUserData(userToSave);
+        setNome(userToSave.nome);
+        setEmail(userToSave.email);
+        setOriginalNome(userToSave.nome);
+        setOriginalEmail(userToSave.email);
+        if (userToSave.foto) {
+          setFotoPerfil(userToSave.foto);
+        } else {
+          setFotoPerfil(avatarPadrao);
+        }
+        setNovaFoto(null);
+        showMessage('Perfil atualizado com sucesso!', 'success');
+      } else {
+        showMessage(updatedData.error || 'Erro ao atualizar perfil.', 'error');
+      }
+    } catch (error) {
+      console.error('Erro de conexão ao atualizar perfil:', error);
+      showMessage('Não foi possível conectar ao servidor.', 'error');
+    }
+  };
+
+  const hasChanges = nome !== originalNome || email !== originalEmail || novaFoto !== null;
+
+  if (!userData) {
     return (
-        <>
-            <GlobalStyle />
-            <PerfilContainer>
-                <HeaderBanner>
-                    <BackButton src={setaVoltar} alt="Voltar" onClick={handleVoltar} />
-                </HeaderBanner>
-                <ProfileContent>
-                    <AvatarWrapper>
-                        <AvatarImage src={fotoPerfil} alt="Foto de Perfil" />
-                        <EditButton htmlFor="file-upload">
-                            <EditIcon src={lapisIcon} alt="Editar Foto" />
-                        </EditButton>
-                        <FileInput id="file-upload" type="file" accept="image/*" onChange={handleEditarFoto} />
-                    </AvatarWrapper>
-
-                    {message.text && <Message type={message.type} show={message.show}>{message.text}</Message>}
-
-                    <ProfileCard>
-                       {/* O restante do seu JSX (InputGroup, etc.) permanece o mesmo */}
-                       <InputGroup>
-                           <Label htmlFor="Nome">Nome Completo</Label>
-                           <Input id="Nome" type="text" value={nome} onChange={(e) => setNome(e.target.value)} />
-                       </InputGroup>
-                       <InputGroup>
-                           <Label htmlFor="email">Endereço de Email</Label>
-                           <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                       </InputGroup>
-                       <InputGroup>
-                           <Label htmlFor="senha">Nova Senha</Label>
-                           <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
-                       </InputGroup>
-                       <BottomActions>
-                           <LogoutText onClick={handleLogout}>Sair da Conta</LogoutText>
-                           <SaveButton onClick={handleSalvarPerfil}>Salvar Alterações</SaveButton>
-                       </BottomActions>
-                    </ProfileCard>
-                </ProfileContent>
-            </PerfilContainer>
-        </>
+      <LoadingContainer>
+        <Spinner />
+      </LoadingContainer>
     );
+  }
+
+  return (
+    <>
+      <GlobalStyle />
+      <PerfilContainer>
+        <HeaderBanner>
+          <BackButton src={setaVoltar} alt="Voltar" onClick={handleVoltar} />
+        </HeaderBanner>
+
+        <ProfileContent>
+          <AvatarWrapper>
+            <AvatarImage src={fotoPerfil} alt="Foto de Perfil" />
+            <EditButton htmlFor="file-upload">
+              <EditIcon src={lapisIcon} alt="Editar Foto" />
+            </EditButton>
+            <FileInput id="file-upload" type="file" accept="image/*" onChange={handleEditarFoto} />
+          </AvatarWrapper>
+
+          {message.text && <Message type={message.type} show={message.show}>{message.text}</Message>}
+
+          <ProfileCard>
+            <InputGroup>
+              <Label htmlFor="Nome">Nome Completo</Label>
+              <Input id="Nome" type="text" value={nome} onChange={(e) => setNome(e.target.value)} />
+            </InputGroup>
+
+            <InputGroup>
+              <Label htmlFor="email">Endereço de Email</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </InputGroup>
+
+            {/* 5. A PROP 'hasChanges' É PASSADA PARA OS COMPONENTES DE BOTÃO */}
+            <BottomActions>
+              <ChangePasswordButton
+                hasChanges={hasChanges}
+                onClick={() => setPasswordModalOpen(true)}
+              >
+                Alterar Senha
+              </ChangePasswordButton>
+
+              {hasChanges && (
+                <SaveButton onClick={handleSalvarPerfil}>Salvar Alterações</SaveButton>
+              )}
+            </BottomActions>
+          </ProfileCard>
+
+          <LogoutText onClick={() => handleLogout(false)}>Sair da Conta</LogoutText>
+        </ProfileContent>
+      </PerfilContainer>
+
+      <ModalAlterarSenha
+        isOpen={isPasswordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        userId={userData.id}
+      />
+    </>
+  );
 }
 
 export default Perfil;

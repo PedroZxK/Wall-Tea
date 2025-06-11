@@ -1,4 +1,4 @@
- 
+
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -183,18 +183,29 @@ app.put('/usuarios/:id', upload.single('fotoPerfil'), async (req, res) => {
 
         sql += ' WHERE id = ?';
         values.push(userId);
-        const [result] = await connection.execute(sql, values);
+        await connection.execute(sql, values);
 
-        if (result.affectedRows > 0) {
-            const [userResult] = await connection.execute(
-                'SELECT id, nome, email, foto FROM usuarios WHERE id = ?',
-                [userId]
-            );
-            res.json(userResult[0]);
+        // Após o update, busque o usuário novamente para retornar os dados atualizados
+        const [userResult] = await connection.execute(
+            'SELECT id, nome, email, foto FROM usuarios WHERE id = ?',
+            [userId]
+        );
+
+        await connection.end();
+
+        if (userResult.length > 0) {
+            const user = userResult[0];
+
+            // TRANSFORME O BUFFER DA FOTO EM BASE64 ANTES DE ENVIAR
+            if (user.foto) {
+                const base64String = Buffer.from(user.foto).toString('base64');
+                user.foto = `data:image/jpeg;base64,${base64String}`;
+            }
+
+            res.json(user); // Agora envia o usuário com a foto já formatada
         } else {
             res.status(404).json({ error: 'Usuário não encontrado' });
         }
-        await connection.end();
     } catch (error) {
         console.error('Erro ao atualizar usuário:', error);
         res.status(500).json({ error: 'Erro ao atualizar usuário' });

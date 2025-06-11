@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import Perfil from './pages/Perfil'
+import ModalAlterarSenha from './pages/ModalAlterarSenha'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/cadastro" element={<Cadastro />} />
         <Route path="/home" element={<Home />} />
         <Route path="/perfil" element={<Perfil />} />
+        <Route path="/modalalterarsenha" element={<ModalAlterarSenha />} />
         <Route path="*" element={<h1>Página não encontrada</h1>} />
       </Routes>
     </BrowserRouter>

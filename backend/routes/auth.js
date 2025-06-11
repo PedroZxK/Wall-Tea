@@ -28,7 +28,8 @@ router.post('/cadastro', async (req, res) => {
 // ROTA DE LOGIN
 router.post('/login', async (req, res) => {
     const { email, senha } = req.body;
-    const sql = 'SELECT id, nome, username, email, senha FROM usuarios WHERE email = ?'; // Selecionar o ID
+    // 1. ADICIONE 'foto' À QUERY SQL
+    const sql = 'SELECT id, nome, username, email, senha, foto FROM usuarios WHERE email = ?';
 
     db.query(sql, [email], async (err, results) => {
         if (err) return res.status(500).json({ erro: 'Erro ao fazer login' });
@@ -39,10 +40,12 @@ router.post('/login', async (req, res) => {
                 res.status(200).json({
                     mensagem: 'Login bem-sucedido',
                     usuario: {
-                        id: user.id,   // Enviar o ID
+                        id: user.id,
                         nome: user.nome,
                         username: user.username,
-                        email: user.email
+                        email: user.email,
+                        // 2. ADICIONE O CAMPO 'foto' AO OBJETO DE RESPOSTA
+                        foto: user.foto
                     }
                 });
             } else {
