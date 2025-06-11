@@ -961,7 +961,7 @@ function Home() {
             setIsLoggedIn(true);
             try {
                 const user = JSON.parse(storedUser);
-                setUserName(user.nome || 'Usuário');
+                setUserName(user.username || 'Usuário');
                 if (user.foto) {
                     if (user.foto.data && user.foto.type === 'Buffer') {
                         let binary = '';
@@ -1526,8 +1526,9 @@ function Home() {
                     <UserInfoContainer onClick={() => navigate('/perfil')}>
                         <UserAvatarInNav src={userPhoto} alt="User Avatar" />
                         {userName && (
+                            // ALTERAÇÃO 2: Exibir o 'userName' completo, sem o .split()
                             <UserNameInNav>
-                                {userName.split(' ')[0]} {/* Exibe apenas o primeiro nome */}
+                                {userName}
                             </UserNameInNav>
                         )}
                     </UserInfoContainer>

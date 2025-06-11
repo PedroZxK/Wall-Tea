@@ -276,10 +276,13 @@ const Spinner = styled.div`
 function Perfil() {
   const navigate = useNavigate();
 
+  // 1. ADICIONADO ESTADO PARA O USERNAME
   const [nome, setNome] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
 
   const [originalNome, setOriginalNome] = useState('');
+  const [originalUsername, setOriginalUsername] = useState('');
   const [originalEmail, setOriginalEmail] = useState('');
 
   const [fotoPerfil, setFotoPerfil] = useState(avatarPadrao);
@@ -292,7 +295,9 @@ function Perfil() {
     setMessage({ text, type, show: true });
     setTimeout(() => setMessage(m => ({ ...m, show: false })), 4000);
   };
+
   const handleVoltar = () => navigate('/home');
+
   const handleLogout = useCallback((isError = false) => {
     localStorage.clear();
     if (!isError) navigate('/login');
@@ -306,9 +311,13 @@ function Perfil() {
         const user = JSON.parse(storedUser);
         setUserData(user);
 
+        // 2. POPULA OS ESTADOS DO USERNAME
         setNome(user.nome || '');
+        setUsername(user.username || '');
         setEmail(user.email || '');
+        
         setOriginalNome(user.nome || '');
+        setOriginalUsername(user.username || '');
         setOriginalEmail(user.email || '');
 
         if (user.foto) {
@@ -345,17 +354,26 @@ function Perfil() {
   };
 
   const handleSalvarPerfil = async () => {
-    // ... lógica de salvar permanece a mesma ...
     if (!userData || !userData.id) {
       showMessage('Dados do usuário não encontrados.', 'error');
       return;
     }
+
+    // Validação do formato do username no frontend
+    if (/[^a-zA-Z0-9_.]/.test(username)) {
+        showMessage('Nome de usuário só pode conter letras, números, _ e .', 'error');
+        return;
+    }
+
     const formData = new FormData();
     formData.append('nome', nome);
+    formData.append('username', username); // 3. ADICIONA O USERNAME AO FORMDATA
     formData.append('email', email);
+    
     if (novaFoto) {
       formData.append('fotoPerfil', novaFoto);
     }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/usuarios/${userData.id}`, {
@@ -364,18 +382,24 @@ function Perfil() {
         body: formData,
       });
       const updatedData = await response.json();
+      
       if (response.ok) {
         const userToSave = updatedData;
         localStorage.setItem('user', JSON.stringify(userToSave));
         setUserData(userToSave);
+        
         setNome(userToSave.nome);
+        setUsername(userToSave.username);
         setEmail(userToSave.email);
+
         setOriginalNome(userToSave.nome);
+        setOriginalUsername(userToSave.username);
         setOriginalEmail(userToSave.email);
+        
         if (userToSave.foto) {
-          setFotoPerfil(userToSave.foto);
+            setFotoPerfil(userToSave.foto);
         } else {
-          setFotoPerfil(avatarPadrao);
+            setFotoPerfil(avatarPadrao);
         }
         setNovaFoto(null);
         showMessage('Perfil atualizado com sucesso!', 'success');
@@ -387,15 +411,12 @@ function Perfil() {
       showMessage('Não foi possível conectar ao servidor.', 'error');
     }
   };
-
-  const hasChanges = nome !== originalNome || email !== originalEmail || novaFoto !== null;
+  
+  // 4. ATUALIZA A CONDIÇÃO DE MUDANÇAS
+  const hasChanges = nome !== originalNome || email !== originalEmail || username !== originalUsername || novaFoto !== null;
 
   if (!userData) {
-    return (
-      <LoadingContainer>
-        <Spinner />
-      </LoadingContainer>
-    );
+    return <LoadingContainer><Spinner /></LoadingContainer>;
   }
 
   return (
@@ -423,22 +444,24 @@ function Perfil() {
               <Input id="Nome" type="text" value={nome} onChange={(e) => setNome(e.target.value)} />
             </InputGroup>
 
+            {/* 5. ADICIONADO O CAMPO DE INPUT PARA USERNAME */}
+            <InputGroup>
+              <Label htmlFor="username">Nome de Usuário</Label>
+              <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
+            </InputGroup>
+
             <InputGroup>
               <Label htmlFor="email">Endereço de Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </InputGroup>
-
-            {/* 5. A PROP 'hasChanges' É PASSADA PARA OS COMPONENTES DE BOTÃO */}
+            
             <BottomActions>
-              <ChangePasswordButton
-                hasChanges={hasChanges}
-                onClick={() => setPasswordModalOpen(true)}
-              >
+              <ChangePasswordButton hasChanges={hasChanges} onClick={() => setPasswordModalOpen(true)}>
                 Alterar Senha
               </ChangePasswordButton>
-
+              
               {hasChanges && (
-                <SaveButton onClick={handleSalvarPerfil}>Salvar Alterações</SaveButton>
+                  <SaveButton onClick={handleSalvarPerfil}>Salvar Alterações</SaveButton>
               )}
             </BottomActions>
           </ProfileCard>

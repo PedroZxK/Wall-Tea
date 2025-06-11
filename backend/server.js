@@ -160,34 +160,89 @@ app.get('/api/user/:userId', async (req, res) => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+// Garanta que esta rota existe no seu server.js
+app.put('/usuarios/:id/senha', async (req, res) => {
+    const userId = req.params.id;
+    const { senhaAtual, novaSenha } = req.body;
+  
+    if (!senhaAtual || !novaSenha) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+    }
+  
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      
+      const [userRows] = await connection.execute('SELECT senha FROM usuarios WHERE id = ?', [userId]);
+  
+      if (userRows.length === 0) {
+        await connection.end();
+        return res.status(404).json({ error: 'Usuário não encontrado.' });
+      }
+  
+      const hashedPasswordAtual = userRows[0].senha;
+  
+      // AQUI ESTÁ O USO DO BCRYPT
+      const isMatch = await bcrypt.compare(senhaAtual, hashedPasswordAtual);
+  
+      if (!isMatch) {
+        await connection.end();
+        return res.status(401).json({ error: 'A senha atual está incorreta.' });
+      }
+  
+      // E AQUI TAMBÉM
+      const novoHashedPassword = await bcrypt.hash(novaSenha, 10);
+  
+      await connection.execute('UPDATE usuarios SET senha = ? WHERE id = ?', [novoHashedPassword, userId]);
+      
+      await connection.end();
+      res.status(200).json({ message: 'Senha alterada com sucesso!' });
+  
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
+      res.status(500).json({ error: 'Erro interno ao tentar alterar a senha.' });
+    }
+});
+
+// ROTA ATUALIZADA: Para atualizar os dados do perfil (nome, username, email, foto)
 app.put('/usuarios/:id', upload.single('fotoPerfil'), async (req, res) => {
     const userId = req.params.id;
-    const { nome, email, senha } = req.body;
+    // 1. RECEBE O USERNAME JUNTO COM OS OUTROS DADOS
+    const { nome, email, username } = req.body;
     let fotoPerfil = req.file ? req.file.buffer : null;
 
     try {
         const connection = await mysql.createConnection(dbConfig);
-        let sql = 'UPDATE usuarios SET nome = ?, email = ?';
-        const values = [nome, email];
+
+        // 2. VERIFICA SE O USERNAME JÁ EXISTE PARA OUTRO USUÁRIO
+        if (username) {
+            const [existingUser] = await connection.execute(
+                'SELECT id FROM usuarios WHERE username = ? AND id != ?',
+                [username, userId]
+            );
+            if (existingUser.length > 0) {
+                await connection.end();
+                // Retorna um erro de conflito (HTTP 409)
+                return res.status(409).json({ error: 'Este nome de usuário já está em uso.' });
+            }
+        }
+
+        // 3. MONTA A QUERY SQL DINAMICAMENTE PARA O UPDATE
+        let sql = 'UPDATE usuarios SET nome = ?, email = ?, username = ?';
+        const values = [nome, email, username];
 
         if (fotoPerfil) {
             sql += ', foto = ?';
             values.push(fotoPerfil);
         }
 
-        if (senha && senha !== '********') {
-            const hashedPassword = await bcrypt.hash(senha, 10);
-            sql += ', senha = ?';
-            values.push(hashedPassword);
-        }
-
         sql += ' WHERE id = ?';
         values.push(userId);
+
         await connection.execute(sql, values);
 
-        // Após o update, busque o usuário novamente para retornar os dados atualizados
+        // Retorna o usuário completamente atualizado
         const [userResult] = await connection.execute(
-            'SELECT id, nome, email, foto FROM usuarios WHERE id = ?',
+            'SELECT id, nome, username, email, foto FROM usuarios WHERE id = ?',
             [userId]
         );
 
@@ -195,14 +250,11 @@ app.put('/usuarios/:id', upload.single('fotoPerfil'), async (req, res) => {
 
         if (userResult.length > 0) {
             const user = userResult[0];
-
-            // TRANSFORME O BUFFER DA FOTO EM BASE64 ANTES DE ENVIAR
             if (user.foto) {
                 const base64String = Buffer.from(user.foto).toString('base64');
                 user.foto = `data:image/jpeg;base64,${base64String}`;
             }
-
-            res.json(user); // Agora envia o usuário com a foto já formatada
+            res.json(user);
         } else {
             res.status(404).json({ error: 'Usuário não encontrado' });
         }
