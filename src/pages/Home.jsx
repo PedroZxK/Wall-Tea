@@ -15,7 +15,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import TransactionTable from './TransactionTable';
-import avatarPadrao from '../assets/avatar.png'; // Make sure this path is correct
+import avatarPadrao from '../assets/avatar.png';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels, ArcElement, LineElement, PointElement);
 
@@ -101,19 +101,37 @@ const NavItem = styled.span`
     }
 `;
 
+// ALTERAÇÃO: Removido o hover do avatar individual, pois o container cuidará disso
 const UserAvatarInNav = styled.img`
-    width: 40px;
-    height: 40px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid white;
+`;
+
+// NOVO: Container para agrupar a foto e o nome do usuário
+const UserInfoContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     cursor: pointer;
     margin-left: 20px;
-    border: 2px solid white;
-    transition: transform 0.2s ease-in-out;
+    padding: 4px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease-in-out;
 
     &:hover {
-        transform: scale(1.1);
+        background-color: rgba(255, 255, 255, 0.1);
     }
+`;
+
+const UserNameInNav = styled.span`
+    color: #FFFFFF;
+    font-size: 0.75em; /* Tamanho pequeno para não poluir a navbar */
+    margin-top: 4px;
+    font-weight: 600;
+    user-select: none; /* Impede que o texto seja selecionado ao clicar */
 `;
 
 const MainContent = styled.div`
@@ -818,6 +836,7 @@ function Home() {
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [monthlyFinancialData, setMonthlyFinancialData] = useState([]);
     const [incomeSourcesData, setIncomeSourcesData] = useState([]);
+    const [userName, setUserName] = useState('');
     const [userPhoto, setUserPhoto] = useState(avatarPadrao);
     const [categories, setCategories] = useState([]);
     const [selectedBudgetMonth, setSelectedBudgetMonth] = useState(new Date().getMonth() + 1);
@@ -942,6 +961,7 @@ function Home() {
             setIsLoggedIn(true);
             try {
                 const user = JSON.parse(storedUser);
+                setUserName(user.nome || 'Usuário');
                 if (user.foto) {
                     if (user.foto.data && user.foto.type === 'Buffer') {
                         let binary = '';
@@ -1416,7 +1436,7 @@ function Home() {
                 callbacks: {
                     label: (context) => {
                         let label = context.dataset.label || '';
-                         label += `: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y)}`;
+                        label += `: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y)}`;
                         return label;
                     }
                 }
@@ -1490,27 +1510,29 @@ function Home() {
             <HomeContainer>
                 <Navbar>
                     <NavLinks>
-                        <NavItem
-                            onClick={() => handleNavClick('inicio')}
-                            className={activeSection === 'inicio' ? 'active' : ''}
-                        >
+                        <NavItem onClick={() => setActiveSection('inicio')} className={activeSection === 'inicio' ? 'active' : ''}>
                             Página Inicial
                         </NavItem>
-                        <NavItem
-                            onClick={() => handleNavClick('relatorios')}
-                            className={activeSection === 'relatorios' ? 'active' : ''}
-                        >
+                        <NavItem onClick={() => setActiveSection('relatorios')} className={activeSection === 'relatorios' ? 'active' : ''}>
                             Relatórios
                         </NavItem>
-                        <NavItem
-                            onClick={() => handleNavClick('orcamentos')}
-                            className={activeSection === 'orcamentos' ? 'active' : ''}
-                        >
+                        <NavItem onClick={() => setActiveSection('orcamentos')} className={activeSection === 'orcamentos' ? 'active' : ''}>
                             Orçamentos
                         </NavItem>
                     </NavLinks>
-                    <UserAvatarInNav src={userPhoto} alt="User Avatar" onClick={() => navigate('/perfil')} />
+
+                    {/* ALTERAÇÃO: O avatar agora está dentro do novo container junto com o nome */}
+                    <UserInfoContainer onClick={() => navigate('/perfil')}>
+                        <UserAvatarInNav src={userPhoto} alt="User Avatar" />
+                        {userName && (
+                            <UserNameInNav>
+                                {userName.split(' ')[0]} {/* Exibe apenas o primeiro nome */}
+                            </UserNameInNav>
+                        )}
+                    </UserInfoContainer>
+
                 </Navbar>
+
                 <MainContent>
                     {activeSection === 'inicio' && (
                         <>
@@ -1594,9 +1616,9 @@ function Home() {
                                 <ChartWrapper>
                                     <ChartContainer>
                                         <h3>Despesas por Categoria</h3>
-                                         {expensesData.length > 0 ? (
+                                        {expensesData.length > 0 ? (
                                             <div>
-                                               <Bar data={expensesChartData} options={expensesChartOptions} />
+                                                <Bar data={expensesChartData} options={expensesChartOptions} />
                                             </div>
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
@@ -1609,14 +1631,14 @@ function Home() {
                                 <ChartWrapper>
                                     <ChartContainer>
                                         <h3>Status dos Orçamentos</h3>
-                                         {budgetsChartDisplayData.length > 0 ? (
-                                             <div>
+                                        {budgetsChartDisplayData.length > 0 ? (
+                                            <div>
                                                 <Bar data={budgetsChartData} options={budgetsChartOptions} />
-                                             </div>
+                                            </div>
                                         ) : (
-                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
-                                                <p>Nenhum orçamento para exibir.<br/>Crie um orçamento ou registre uma transação!</p>
-                                             </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                                <p>Nenhum orçamento para exibir.<br />Crie um orçamento ou registre uma transação!</p>
+                                            </div>
                                         )}
                                     </ChartContainer>
                                 </ChartWrapper>
@@ -1639,7 +1661,7 @@ function Home() {
                                             <div><Pie data={categoryPieChartData} options={categoryPieChartOptions} /></div>
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
-                                               <p>Nenhuma despesa para exibir.</p>
+                                                <p>Nenhuma despesa para exibir.</p>
                                             </div>
                                         )}
                                     </PieChartContainer>
@@ -1647,7 +1669,7 @@ function Home() {
                                     <PieChartContainer>
                                         <h3>Fontes de Renda</h3>
                                         {incomeSourcesData.length > 0 ? (
-                                             <div><Pie data={incomeSourcesPieChartData} options={incomeSourcesPieChartOptions} /></div>
+                                            <div><Pie data={incomeSourcesPieChartData} options={incomeSourcesPieChartOptions} /></div>
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
                                                 <p>Nenhuma fonte de renda para exibir.</p>
@@ -1710,8 +1732,8 @@ function Home() {
                     {activeSection === 'orcamentos' && (
                         <>
                             <ReportsTitle>Gestão de Orçamentos</ReportsTitle>
-                            
-                             <BudgetMonthSelector>
+
+                            <BudgetMonthSelector>
                                 <label htmlFor="budgetMonthSelect">Ver Orçamentos de:</label>
                                 <select
                                     id="budgetMonthSelect"
