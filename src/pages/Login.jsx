@@ -10,9 +10,30 @@ const GlobalStyle = createGlobalStyle`
     padding: 0;
     background-color: #108886;
   }
-  html, body, #root {
-    height: 100%;
-    width: 100%;
+    html {
+        scroll-behavior: smooth;
+        height: 100%;
+        width: 100%;
+    }
+    #root {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        padding: 0;
+        max-width: 100%;
+    }
+`;
+
+const BackLink = styled(Link)`
+  display: block;
+  text-align: center;
+  margin-top: 15px;
+  color: #555;
+  text-decoration: none;
+  font-size: 14px;
+  
+  &:hover {
+    text-decoration: underline;
   }
 `;
 
@@ -185,6 +206,7 @@ function Login() {
           <FooterText>
             Não tem uma conta? <LoginLink to="/cadastro">Registre-se</LoginLink>
           </FooterText>
+          <BackLink to="/">Voltar para a Página Inicial</BackLink>
         </FormContainer>
       </CadastroContainer>
     </>

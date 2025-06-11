@@ -72,6 +72,19 @@ const Input = styled.input`
   }
 `;
 
+const BackLink = styled(Link)`
+  display: block;
+  text-align: center;
+  margin-top: 15px;
+  color: #555;
+  text-decoration: none;
+  font-size: 14px;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Button = styled.button`
   background-color: #0d4147;
   color: #ffffff;
@@ -275,6 +288,7 @@ function Cadastro() {
             Eu tenho uma conta!{' '}
             <LoginLink to="/login">Entrar</LoginLink>
           </FooterText>
+          <BackLink to="/">Voltar para a Página Inicial</BackLink>
         </FormContainer>
       </CadastroContainer>
     </>

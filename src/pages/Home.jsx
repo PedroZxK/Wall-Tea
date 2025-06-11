@@ -1472,6 +1472,7 @@ function Home() {
         return null;
     }
 
+    // eslint-disable-next-line no-unused-vars
     const handleNavClick = (section) => {
         setActiveSection(section);
     };
