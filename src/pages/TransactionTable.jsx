@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import lupaIcon from '../assets/lupa.png'; // Importe a imagem da lupa
+import lupaIcon from '../assets/lupa.png'; // Make sure this path is correct
 
-// --- Styled Components (o restante permanece o mesmo) ---
+// --- Styled Components ---
 
 const TableContainer = styled.div`
-    width: 95%;
+    // FIX: Changed width from 200% to 100% to prevent horizontal overflow.
+    width: 100%;
     margin-top: 20px;
     border-radius: 10px;
-    overflow: hidden;
+    overflow-x: auto; // FIX: Allows table to scroll horizontally on small screens if needed.
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -18,6 +19,7 @@ const TableContainer = styled.div`
 
 const SearchBarContainer = styled.div`
     width: 100%;
+    max-width: 500px; // Added max-width for better appearance
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -48,11 +50,10 @@ const SearchButton = styled.button`
         background-color: #0d6b69;
     }
 
-    /* Adicione estilos para a imagem dentro do botão, se necessário */
     img {
-        width: 20px; /* Ajuste o tamanho da imagem conforme necessário */
+        width: 20px;
         height: 20px;
-        filter: invert(100%); /* Para tornar a lupa branca, se ela for preta */
+        filter: invert(100%);
     }
 `;
 
@@ -66,27 +67,30 @@ const TableHead = styled.thead`
 `;
 
 const TableHeader = styled.th`
-    padding: 10px;
+    padding: 12px 15px; // Increased padding
     text-align: left;
     border-bottom: 1px solid #ddd;
-    ${props => props.isActions && 'width: 150px;'}
-    ${props => props.isCategory && 'width: 120px;'}
+    font-size: 0.9em;
+    color: #0D4147;
 `;
 
 const TableRow = styled.tr`
     &:nth-child(even) {
         background-color: #f9f9f9;
     }
+    &:hover {
+        background-color: #f1f1f1;
+    }
 `;
 
 const TableCell = styled.td`
-    padding: 10px;
+    padding: 12px 15px; // Increased padding
     border-bottom: 1px solid #eee;
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: ${props => props.maxWidth || 'none'};
+    max-width: ${props => props.$maxWidth || '200px'}; // Set a default max-width
 `;
 
 const Button = styled.button`
@@ -192,9 +196,23 @@ const Input = styled.input`
     box-sizing: border-box;
 `;
 
-// --- Component Function ---
+const Select = styled.select`
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+`;
 
-const TransactionTable = () => {
+const Message = styled.p`
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: ${props => props.type === 'success' ? 'green' : 'red'};
+    text-align: center;
+`;
+
+const TransactionTable = ({ onTransactionChange }) => {
     const [transactions, setTransactions] = useState([]);
     const [newTransaction, setNewTransaction] = useState({
         id: null,
@@ -204,6 +222,7 @@ const TransactionTable = () => {
         transaction_date: '',
         amount: '',
         category_id: '',
+        transaction_type: 'expense',
     });
     const [showModal, setShowModal] = useState(false);
     const [categorias, setCategorias] = useState([]);
@@ -224,16 +243,15 @@ const TransactionTable = () => {
                 const data = await response.json();
                 const formattedData = data.map(trans => ({
                     ...trans,
-                    transaction_date: new Date(trans.transaction_date).toISOString().split('T')[0]
+                    transaction_date: new Date(trans.transaction_date).toISOString().split('T')[0],
+                    transaction_type: parseFloat(trans.amount) < 0 ? 'expense' : 'income'
                 }));
-                return formattedData;
+                setTransactions(formattedData);
             } catch (error) {
                 console.error("Erro ao buscar transações:", error);
                 setErrorMessage('Erro ao carregar transações. Tente novamente.');
-                throw error;
             }
         }
-        return [];
     }, [userId]);
 
     const fetchCategorias = useCallback(async () => {
@@ -249,16 +267,8 @@ const TransactionTable = () => {
     }, []);
 
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                await fetchCategorias();
-                const data = await fetchTransactions();
-                setTransactions(data);
-            } catch (error) {
-                console.error("Erro ao carregar dados iniciais:", error);
-            }
-        };
-        loadData();
+        fetchCategorias();
+        fetchTransactions();
     }, [fetchCategorias, fetchTransactions]);
 
     const handleInputChange = (event) => {
@@ -278,24 +288,30 @@ const TransactionTable = () => {
             transaction_date: '',
             amount: '',
             category_id: '',
+            transaction_type: 'expense',
         });
         setIsEditing(false);
     };
 
     const handleOpenModalForAdd = () => {
         resetForm();
+        setSuccessMessage('');
+        setErrorMessage('');
         setShowModal(true);
     };
 
     const handleOpenModalForEdit = (transaction) => {
+        setSuccessMessage('');
+        setErrorMessage('');
         setNewTransaction({
             id: transaction.id,
             description: transaction.description,
             entity: transaction.entity,
             payment_method: transaction.payment_method,
             transaction_date: transaction.transaction_date,
-            amount: transaction.amount,
+            amount: Math.abs(parseFloat(transaction.amount)),
             category_id: transaction.category_id,
+            transaction_type: parseFloat(transaction.amount) < 0 ? 'expense' : 'income'
         });
         setIsEditing(true);
         setShowModal(true);
@@ -307,49 +323,47 @@ const TransactionTable = () => {
         setErrorMessage('');
 
         if (userId) {
+            let finalAmount = parseFloat(newTransaction.amount);
+            if (newTransaction.transaction_type === 'expense') {
+                finalAmount = -Math.abs(finalAmount);
+            } else {
+                finalAmount = Math.abs(finalAmount);
+            }
+
             try {
-                let response;
-                let method;
-                let url;
+                const method = isEditing ? 'PUT' : 'POST';
+                const url = isEditing
+                    ? `http://localhost:3000/api/transactions/${newTransaction.id}`
+                    : 'http://localhost:3000/api/transactions';
 
-                if (isEditing && newTransaction.id) {
-                    method = 'PUT';
-                    url = `http://localhost:3000/api/transactions/${newTransaction.id}`;
-                } else {
-                    method = 'POST';
-                    url = 'http://localhost:3000/api/transactions';
-                }
-
-                response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...newTransaction,
+                        amount: finalAmount,
                         userId: userId,
                     }),
                 });
 
                 if (response.ok) {
-                    const updatedTransactions = await fetchTransactions();
-                    setTransactions(updatedTransactions);
+                    await fetchTransactions();
                     setSuccessMessage(isEditing ? 'Transação atualizada com sucesso!' : 'Transação adicionada com sucesso!');
                     setTimeout(() => setSuccessMessage(''), 3000);
                     setShowModal(false);
                     resetForm();
+                    if (onTransactionChange) {
+                        onTransactionChange();
+                    }
                 } else {
                     const errorData = await response.json();
                     setErrorMessage('Erro ao salvar transação: ' + (errorData.error || 'Erro desconhecido'));
-                    setTimeout(() => setErrorMessage(''), 5000);
                 }
             } catch (error) {
                 setErrorMessage('Erro na comunicação com o servidor: ' + error.message);
-                setTimeout(() => setErrorMessage(''), 5000);
             }
         } else {
             setErrorMessage('Usuário não autenticado. Por favor, faça login.');
-            setTimeout(() => setErrorMessage(''), 5000);
         }
     };
 
@@ -366,26 +380,25 @@ const TransactionTable = () => {
             });
 
             if (response.ok) {
-                const updatedTransactions = await fetchTransactions();
-                setTransactions(updatedTransactions);
+                await fetchTransactions();
                 setSuccessMessage('Transação excluída com sucesso!');
                 setTimeout(() => setSuccessMessage(''), 3000);
+                if (onTransactionChange) {
+                    onTransactionChange();
+                }
             } else {
                 const errorData = await response.json();
                 setErrorMessage('Erro ao excluir transação: ' + (errorData.error || 'Erro desconhecido'));
-                setTimeout(() => setErrorMessage(''), 5000);
             }
         } catch (error) {
             setErrorMessage('Erro na comunicação com o servidor ao excluir: ' + error.message);
-            setTimeout(() => setErrorMessage(''), 5000);
         }
     };
 
     const filteredTransactions = transactions.filter(transaction =>
-        transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.payment_method.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (transaction.category_name && transaction.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        Object.values(transaction).some(value =>
+            String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
 
     return (
@@ -398,54 +411,52 @@ const TransactionTable = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <SearchButton>
-                    {/* Usando a imagem como ícone do botão */}
                     <img src={lupaIcon} alt="Pesquisar" />
                 </SearchButton>
             </SearchBarContainer>
 
             <h3 style={{ color: '#108886', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 Transações
-                <span
-                    style={{ fontWeight: 'normal', cursor: 'pointer' }}
-                    onClick={handleOpenModalForAdd}
-                >+</span>
+                <Button onClick={handleOpenModalForAdd} style={{ marginTop: 0, padding: '5px 10px', fontSize: '0.9em' }}>
+                    + Adicionar
+                </Button>
             </h3>
 
-            {successMessage && (
-                <p style={{ color: 'green', marginBottom: '10px', fontWeight: 'bold' }}>
-                    {successMessage}
-                </p>
-            )}
-            {errorMessage && (
-                <p style={{ color: 'red', marginBottom: '10px', fontWeight: 'bold' }}>
-                    {errorMessage}
-                </p>
-            )}
+            {successMessage && <Message type="success">{successMessage}</Message>}
+            {errorMessage && !showModal && <Message type="error">{errorMessage}</Message>}
 
             <StyledTable>
                 <TableHead>
                     <tr>
-                        <TableHeader>ID</TableHeader>
+                        <TableHeader>Código</TableHeader>
                         <TableHeader>Descrição</TableHeader>
                         <TableHeader>Entidade</TableHeader>
                         <TableHeader>Pagamento</TableHeader>
                         <TableHeader>Data</TableHeader>
-                        <TableHeader>Valor Total</TableHeader>
-                        <TableHeader isCategory>Categoria</TableHeader>
-                        <TableHeader isActions>Ações</TableHeader>
+                        <TableHeader>Valor</TableHeader>
+                        <TableHeader>Categoria</TableHeader>
+                        <TableHeader>Tipo</TableHeader>
+                        <TableHeader>Ações</TableHeader>
                     </tr>
                 </TableHead>
                 <tbody>
                     {filteredTransactions.map(transaction => (
                         <TableRow key={transaction.id}>
-                            <TableCell maxWidth="60px">{transaction.id}</TableCell>
-                            <TableCell maxWidth="150px">{transaction.description}</TableCell>
-                            <TableCell maxWidth="120px">{transaction.entity}</TableCell>
-                            <TableCell maxWidth="100px">{transaction.payment_method}</TableCell>
-                            <TableCell maxWidth="100px">{transaction.transaction_date}</TableCell>
-                            <TableCell maxWidth="100px">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}</TableCell>
-                            <TableCell maxWidth="120px">{transaction.category_name}</TableCell>
-                            <TableCell maxWidth="180px">
+                            <TableCell $maxWidth="60px">{transaction.id}</TableCell>
+                            <TableCell $maxWidth="200px">{transaction.description}</TableCell>
+                            <TableCell $maxWidth="150px">{transaction.entity}</TableCell>
+                            <TableCell $maxWidth="120px">{transaction.payment_method}</TableCell>
+                            <TableCell $maxWidth="110px">{transaction.transaction_date}</TableCell>
+                            <TableCell $maxWidth="120px">
+                                <span style={{ color: parseFloat(transaction.amount) < 0 ? '#DA4141' : '#4CAF50', fontWeight: 'bold' }}>
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
+                                </span>
+                            </TableCell>
+                            <TableCell $maxWidth="120px">{transaction.category_name}</TableCell>
+                            <TableCell $maxWidth="80px">
+                                {parseFloat(transaction.amount) < 0 ? 'Despesa' : 'Receita'}
+                            </TableCell>
+                            <TableCell $maxWidth="180px">
                                 <ActionButtons>
                                     <ActionButton onClick={() => handleOpenModalForEdit(transaction)}>Editar</ActionButton>
                                     <DeleteButton onClick={() => handleDelete(transaction.id)}>Excluir</DeleteButton>
@@ -461,69 +472,58 @@ const TransactionTable = () => {
                     <ModalContent>
                         <CloseButton onClick={() => { setShowModal(false); resetForm(); }}>×</CloseButton>
                         <h4>{isEditing ? 'Editar Transação' : 'Adicionar Nova Transação'}</h4>
+                        {errorMessage && <Message type="error">{errorMessage}</Message>}
                         <form onSubmit={handleSubmit}>
                             <InputGroup>
                                 <Label htmlFor="description">Descrição:</Label>
                                 <Input
-                                    type="text"
-                                    id="description"
-                                    name="description"
-                                    value={newTransaction.description}
-                                    onChange={handleInputChange}
-                                    required
+                                    type="text" id="description" name="description"
+                                    value={newTransaction.description} onChange={handleInputChange} required
                                 />
                             </InputGroup>
                             <InputGroup>
                                 <Label htmlFor="entity">Entidade:</Label>
                                 <Input
-                                    type="text"
-                                    id="entity"
-                                    name="entity"
-                                    value={newTransaction.entity}
-                                    onChange={handleInputChange}
+                                    type="text" id="entity" name="entity"
+                                    value={newTransaction.entity} onChange={handleInputChange}
                                 />
                             </InputGroup>
                             <InputGroup>
                                 <Label htmlFor="payment_method">Método de Pagamento:</Label>
                                 <Input
-                                    type="text"
-                                    id="payment_method"
-                                    name="payment_method"
-                                    value={newTransaction.payment_method}
-                                    onChange={handleInputChange}
+                                    type="text" id="payment_method" name="payment_method"
+                                    value={newTransaction.payment_method} onChange={handleInputChange}
                                 />
                             </InputGroup>
                             <InputGroup>
                                 <Label htmlFor="transaction_date">Data:</Label>
                                 <Input
-                                    type="date"
-                                    id="transaction_date"
-                                    name="transaction_date"
-                                    value={newTransaction.transaction_date}
-                                    onChange={handleInputChange}
-                                    required
+                                    type="date" id="transaction_date" name="transaction_date"
+                                    value={newTransaction.transaction_date} onChange={handleInputChange} required
                                 />
                             </InputGroup>
                             <InputGroup>
-                                <Label htmlFor="amount">Valor Total:</Label>
+                                <Label htmlFor="amount">Valor:</Label>
                                 <Input
-                                    type="number"
-                                    id="amount"
-                                    name="amount"
-                                    value={newTransaction.amount}
-                                    onChange={handleInputChange}
-                                    required
+                                    type="number" id="amount" name="amount"
+                                    value={newTransaction.amount} onChange={handleInputChange} required step="0.01"
                                 />
+                            </InputGroup>
+                            <InputGroup>
+                                <Label htmlFor="transaction_type">Tipo de Transação:</Label>
+                                <Select
+                                    id="transaction_type" name="transaction_type"
+                                    value={newTransaction.transaction_type} onChange={handleInputChange} required
+                                >
+                                    <option value="expense">Despesa</option>
+                                    <option value="income">Receita</option>
+                                </Select>
                             </InputGroup>
                             <InputGroup>
                                 <Label htmlFor="category_id">Categoria:</Label>
-                                <select
-                                    id="category_id"
-                                    name="category_id"
-                                    value={newTransaction.category_id}
-                                    onChange={handleInputChange}
-                                    required
-                                    style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
+                                <Select
+                                    id="category_id" name="category_id"
+                                    value={newTransaction.category_id} onChange={handleInputChange} required
                                 >
                                     <option value="">Selecione a Categoria</option>
                                     {categorias.map((cat) => (
@@ -531,7 +531,7 @@ const TransactionTable = () => {
                                             {cat.name}
                                         </option>
                                     ))}
-                                </select>
+                                </Select>
                             </InputGroup>
                             <Button type="submit">{isEditing ? 'Salvar Alterações' : 'Adicionar Transação'}</Button>
                         </form>

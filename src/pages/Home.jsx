@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { styled, createGlobalStyle } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Bar, Line, Pie } from 'react-chartjs-2'; // Importe Line e Pie
+import { Bar, Line, Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     BarElement,
@@ -9,14 +9,15 @@ import {
     LinearScale,
     Tooltip,
     Legend,
-    ArcElement, // Necessário para gráficos de setor
-    LineElement, // Necessário para gráficos de linha
-    PointElement, // Necessário para pontos em gráficos de linha
+    ArcElement,
+    LineElement,
+    PointElement,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import TransactionTable from './TransactionTable';
+import avatarPadrao from '../assets/avatar.png'; // Make sure this path is correct
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels, ArcElement, LineElement, PointElement); // Registre os novos elementos
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels, ArcElement, LineElement, PointElement);
 
 // --- Global Styles and Styled Components ---
 const GlobalStyle = createGlobalStyle`
@@ -29,7 +30,7 @@ const GlobalStyle = createGlobalStyle`
         padding: 0;
         display: flex;
         min-height: 100vh;
-        background-color: #f0f2f5; /* Light background for better contrast */
+        background-color: #f0f2f5;
     }
     html {
         scroll-behavior: smooth;
@@ -73,6 +74,8 @@ const NavItem = styled.span`
     cursor: pointer;
     position: relative;
     padding: 10px;
+    transition: color 0.3s ease-in-out;
+
 
     &::before {
         content: '';
@@ -88,15 +91,28 @@ const NavItem = styled.span`
         transition: opacity 0.3s ease-in-out;
     }
 
-    &:hover::before {
+    &:hover, &.active {
+      color: #0D4147;
+    }
+
+    &:hover::before, &.active::before {
         opacity: 1;
         border-radius: 10px;
     }
+`;
 
-    &.active {
-        background-color: #FFFFFF;
-        color: #0D4147;
-        border-radius: 10px;
+const UserAvatarInNav = styled.img`
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    margin-left: 20px;
+    border: 2px solid white;
+    transition: transform 0.2s ease-in-out;
+
+    &:hover {
+        transform: scale(1.1);
     }
 `;
 
@@ -104,7 +120,7 @@ const MainContent = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Alinha o conteúdo ao topo */
+    justify-content: flex-start;
     width: 100%;
     overflow: hidden;
     padding: 20px;
@@ -119,87 +135,77 @@ const HomeContainer = styled.div`
     width: 100%;
 `;
 
-// Novo contêiner para a linha superior (Saldo, Receitas, Despesas)
 const TopRow = styled.div`
     width: 100%;
     display: flex;
     justify-content: space-around;
     gap: 20px;
     margin-bottom: 20px;
-    flex-wrap: wrap; /* Permite quebrar em telas menores */
+    flex-wrap: wrap;
 
     @media (min-width: 769px) {
         flex-wrap: nowrap;
-        justify-content: space-between; /* Alinha bem nas laterais */
+        justify-content: space-between;
     }
 `;
 
-const Saldo = styled.div`
-    flex: 1; /* Permite que ocupe o espaço disponível */
-    min-width: 300px; /* Largura mínima para o Saldo */
-    text-align: left;
-    background-color: #108886;
-    color: #FFFFFF;
-    padding: 15px 20px;
-    border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    font-size: 1.2em;
-    display: flex;
-    align-items: center;
-    justify-content: center; /* Centraliza o texto verticalmente */
-    height: 100%; /* Ajusta a altura flexivelmente */
-
-    @media (max-width: 768px) {
-        width: 100%;
-        flex: none; /* Desativa o flex para ocupar 100% */
-    }
-`;
-
-// Contêiner para Receitas e Despesas
 const Financeiro = styled.div`
-    flex: 1; /* Permite que ocupe o espaço disponível */
-    min-width: 300px; /* Largura mínima para Receitas/Despesas */
+    flex: 1;
+    min-width: 300px;
     display: flex;
-    flex-direction: column; /* Coloca Receitas e Despesas uma em cima da outra */
-    gap: 20px;
-    height: 100%; /* Ocupa a altura total disponível dentro de TopRow */
+    flex-direction: column;
+    gap: 15px;
+    height: 100%;
+    background-color: transparent;
 
     @media (max-width: 768px) {
         width: 100%;
-        flex: none; /* Desativa o flex para ocupar 100% */
+        flex: none;
     }
 `;
 
 const Receitas = styled.div`
     text-align: left;
-    background-color: #DA4141;
+    background-color: #4CAF50; /* Green for Income */
     color: #FFFFFF;
     padding: 15px 20px;
     border-radius: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    flex: 1; /* Permite que ocupe o espaço disponível dentro do Financeiro */
+    flex: 1;
     min-width: 150px;
     font-size: 1.1em;
 `;
 
 const Despesas = styled.div`
     text-align: left;
-    background-color: #108886;
+    background-color: #DA4141; /* Red for Expenses */
     color: #FFFFFF;
     padding: 15px 20px;
     border-radius: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    flex: 1; /* Permite que ocupe o espaço disponível dentro do Financeiro */
+    flex: 1;
     min-width: 150px;
     font-size: 1.1em;
 `;
 
-// Contêiner para os dois gráficos
+const SaldoIndividualDisplay = styled.div`
+    text-align: left;
+    background-color: #108886; /* Color for Saldo */
+    color: #FFFFFF;
+    padding: 15px 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    flex: 1;
+    min-width: 150px;
+    font-size: 1.1em;
+`;
+
+
 const Charts = styled.div`
     width: 100%;
     display: flex;
     justify-content: space-around;
-    align-items: flex-start; /* Alinha os gráficos ao topo se tiverem alturas diferentes */
+    align-items: flex-start;
     gap: 20px;
     margin-bottom: 20px;
     flex-wrap: wrap;
@@ -211,30 +217,37 @@ const Charts = styled.div`
 `;
 
 const ChartWrapper = styled.div`
-    flex: 1; /* Permite que ocupe o espaço disponível */
-    min-width: 45%; /* Garante que ocupe quase metade, com espaço para gap */
-    max-width: 50%; /* Limita a largura máxima */
+    flex: 1;
+    min-width: 300px; // FIX: Ensures a minimum width on smaller screens before wrapping
+    max-width: 100%;  // FIX: Allows the chart to take full width on smaller screens
     display: flex;
     flex-direction: column;
     gap: 20px;
-    @media (max-width: 768px) {
-        width: 100%;
-        max-width: 100%;
+
+    @media (min-width: 769px) {
+        max-width: 50%; // Re-apply max-width for larger screens
     }
 `;
 
 const ChartContainer = styled.div`
     padding: 20px;
     width: 100%;
-    height: 400px; /* Altura fixa para ambos os gráficos */
+    min-height: 400px; // FIX: Changed from height to min-height to allow content to grow
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     border-radius: 15px;
-    text-align: left;
+    text-align: center; // FIX: Center the title
     background-color: #FFFFFF;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; // FIX: Align items to the top
     align-items: center;
+
+    // FIX: Container for the chart canvas to control its size relative to the parent
+    & > div {
+        position: relative;
+        width: 100%;
+        flex-grow: 1;
+    }
 `;
 
 const LogoutButton = styled.button`
@@ -260,27 +273,27 @@ const LogoutButton = styled.button`
 
 const TransactionTableWrapper = styled.div`
     width: 100%;
-    max-width: 1000px; /* Keeps your max-width */
+    max-width: 1500px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     border-radius: 15px;
     background-color: #FFFFFF;
     padding: 20px;
-    margin: 20px auto; /* This is key for centering and adding vertical space */
-    display: flex; /* Added to potentially help with inner centering if needed */
-    justify-content: center; /* Centers content horizontally within this wrapper */
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
 `;
 
 const chartColors = [
-    'rgba(102, 170, 223, 0.8)', // Light Blue
-    'rgba(56, 204, 201, 0.8)',  // Teal
-    'rgba(67, 200, 236, 0.8)',  // Sky Blue
-    'rgba(145, 70, 149, 0.8)',  // Purple
-    'rgba(119, 98, 166, 0.8)',  // Lavender
-    'rgba(107, 130, 187, 0.8)', // Steel Blue
-    'rgba(255, 159, 64, 0.8)',  // Orange
-    'rgba(75, 192, 192, 0.8)',  // Green
-    'rgba(153, 102, 255, 0.8)', // Medium Purple
-    'rgba(255, 99, 132, 0.8)',  // Red
+    'rgba(102, 170, 223, 0.8)',
+    'rgba(56, 204, 201, 0.8)',
+    'rgba(67, 200, 236, 0.8)',
+    'rgba(145, 70, 149, 0.8)',
+    'rgba(119, 98, 166, 0.8)',
+    'rgba(107, 130, 187, 0.8)',
+    'rgba(255, 159, 64, 0.8)',
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 99, 132, 0.8)',
 ];
 
 // --- Novos Styled Components para a página de Relatórios ---
@@ -288,7 +301,7 @@ const ReportsContent = styled.div`
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 1200px; /* Largura máxima para a página de relatórios */
+    max-width: 1200px;
     padding: 20px;
     gap: 20px;
     align-items: center;
@@ -304,11 +317,11 @@ const ReportsTitle = styled.h2`
 
 const ReportsGrid = styled.div`
     display: flex;
-    flex-wrap: wrap; /* Permite quebrar em telas menores */
+    flex-wrap: wrap;
     width: 100%;
     gap: 20px;
-    justify-content: center; /* Centraliza as colunas */
-    align-items: flex-start; /* Alinha as colunas pelo topo */
+    justify-content: center;
+    align-items: flex-start;
 `;
 
 const LeftReportsColumn = styled.div`
@@ -325,22 +338,21 @@ const LeftReportsColumn = styled.div`
 `;
 
 const RightReportsColumn = styled.div`
-    flex: 2; /* Ocupa o dobro de espaço da coluna esquerda */
-    min-width: 600px;
-    max-width: 800px;
+    flex: 2;
+    min-width: 300px; // FIX: Allow it to shrink on smaller screens
     display: flex;
     flex-direction: column;
     gap: 20px;
-    @media (max-width: 768px) {
+    @media (max-width: 992px) { // FIX: Adjust breakpoint for better layout flow
         width: 100%;
-        min-width: unset; /* Remove min-width para mobile */
+        min-width: unset;
         max-width: 100%;
     }
 `;
 
 const PieChartContainer = styled(ChartContainer)`
-    height: 350px; /* Altura específica para gráficos de pizza */
-    justify-content: flex-start; /* Alinha título ao topo */
+    min-height: 500px;
+    justify-content: flex-start;
     padding-top: 10px;
 
     canvas {
@@ -349,7 +361,7 @@ const PieChartContainer = styled(ChartContainer)`
 `;
 
 const LineChartContainer = styled(ChartContainer)`
-    height: 450px; /* Altura para gráfico de linha */
+    min-height: 450px;
     justify-content: flex-start;
     padding-top: 10px;
 `;
@@ -360,7 +372,7 @@ const MonthlyDataTable = styled.table`
     margin-top: 20px;
     background-color: #FFFFFF;
     border-radius: 15px;
-    overflow: hidden; /* Garante que o border-radius funcione */
+    overflow: hidden;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 
     th, td {
@@ -384,15 +396,16 @@ const MonthlyDataTable = styled.table`
     }
 
     td:last-child {
-        text-align: right; /* Alinha valores monetários à direita */
+        text-align: right;
     }
 `;
 
 const ChartLegend = styled.div`
     display: flex;
     justify-content: center;
+    flex-wrap: wrap; // Allow legend to wrap
     gap: 20px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     font-weight: bold;
 `;
 
@@ -409,17 +422,314 @@ const LegendColorBox = styled.span`
     border-radius: 4px;
 `;
 
+const IncomeFormContainer = styled.div`
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    background-color: #FFFFFF;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+`;
 
-// --- Fetch Functions (mantidas iguais, não inseridas para brevidade, mas devem estar no arquivo) ---
+const IncomeForm = styled.form`
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    max-width: 600px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+`;
+
+const IncomeInputGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    flex: 1;
+`;
+
+const IncomeLabel = styled.label`
+    font-size: 0.9em;
+    color: #333;
+    margin-bottom: 5px;
+    font-weight: bold;
+`;
+
+const IncomeInput = styled.input`
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+`;
+
+const IncomeButton = styled.button`
+    background-color: #108886;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    align-self: flex-end;
+    height: 42px; // Match input height
+
+    &:hover {
+        background-color: #0d6b69;
+    }
+`;
+
+const Message = styled.p`
+    margin-top: 10px;
+    font-weight: bold;
+    color: ${props => props.type === 'success' ? 'green' : 'red'};
+`;
+
+const BudgetFormContainer = styled.div`
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    background-color: #FFFFFF;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+`;
+
+const BudgetForm = styled.form`
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    max-width: 600px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+`;
+
+const BudgetInputGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    flex: 1;
+`;
+
+const BudgetLabel = styled.label`
+    font-size: 0.9em;
+    color: #333;
+    margin-bottom: 5px;
+    font-weight: bold;
+`;
+
+const BudgetSelect = styled.select`
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    background-color: white;
+`;
+
+const BudgetInput = styled.input`
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+`;
+
+const BudgetButton = styled.button`
+    background-color: #108886;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    align-self: flex-end;
+    height: 42px; // Match input height
+
+    &:hover {
+        background-color: #0d6b69;
+    }
+`;
+
+const BudgetsTableContainer = styled.div`
+    width: 100%;
+    max-width: 1000px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    border-radius: 15px;
+    background-color: #FFFFFF;
+    padding: 20px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+`;
+
+const BudgetsTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #108886;
+        color: white;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+`;
+
+const ProgressBarContainer = styled.div`
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin-top: 5px;
+    overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div`
+    height: 20px;
+    background-color: ${props => props.percentage > 100 ? '#DA4141' : '#4CAF50'};
+    width: ${props => Math.min(props.percentage, 100)}%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8em;
+    transition: width 0.5s ease-in-out;
+`;
+
+const BudgetMonthSelector = styled.div`
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap; // Allow to wrap on small screens
+
+    label {
+        font-weight: bold;
+        color: #0D4147;
+    }
+
+    select {
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+`;
+
+const ActionButton = styled.button` /* Reusing from TransactionTable style for consistency */
+    background-color: #108886;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.9em;
+    margin-right: 5px;
+
+    &:hover {
+        background-color: #0d6b69;
+    }
+`;
+
+const DeleteButton = styled.button` /* Reusing from TransactionTable style for consistency */
+    background-color: #DA4141;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.9em;
+
+    &:hover {
+        background-color: #c03030;
+    }
+`;
+
+const ModalOverlay = styled.div` /* Reusing from TransactionTable style for consistency */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`;
+
+const ModalContent = styled.div` /* Reusing from TransactionTable style for consistency */
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    position: relative;
+`;
+
+const CloseButton = styled.button` /* Reusing from TransactionTable style for consistency */
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    cursor: pointer;
+`;
+
+const InputGroup = styled.div` /* Reusing from TransactionTable style for consistency */
+    margin-bottom: 15px;
+`;
+
+const Label = styled.label` /* Reusing from TransactionTable style for consistency */
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+`;
+
+const Input = styled.input` /* Reusing from TransactionTable style for consistency */
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+`;
+const Select = styled.select` /* Reusing from TransactionTable style for consistency */
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+`;
+
+
+// --- Fetch Functions ---
 const fetchTransactions = async (userId) => {
-    console.log("Home: Buscando dados das transações da API para o usuário:", userId);
     try {
         const transactionsResponse = await fetch(`http://localhost:3000/api/transactions?userId=${userId}`);
         if (!transactionsResponse.ok) {
             throw new Error(`HTTP error! status: ${transactionsResponse.status}`);
         }
         const transactionsData = await transactionsResponse.json();
-        console.log("Dados recebidos da API (Transações):", transactionsData);
         return transactionsData;
     } catch (error) {
         console.error("Home: Erro ao buscar dados das transações da API:", error);
@@ -428,14 +738,12 @@ const fetchTransactions = async (userId) => {
 };
 
 const fetchUserSaldo = async (userId) => {
-    console.log("Home: Buscando saldo do usuário:", userId);
     try {
         const userResponse = await fetch(`http://localhost:3000/api/user/${userId}`);
         if (!userResponse.ok) {
             throw new Error(`Failed to fetch user data: ${userResponse.status}`);
         }
         const userData = await userResponse.json();
-        console.log("Saldo do usuário recebido:", userData.saldo);
         return userData.saldo;
     } catch (error) {
         console.error("Error fetching user saldo:", error);
@@ -443,52 +751,58 @@ const fetchUserSaldo = async (userId) => {
     }
 };
 
-const fetchBudgets = async (userId) => {
-    console.log("Home: Buscando dados dos orçamentos da API para o usuário:", userId);
+const fetchBudgets = async (userId, month, year) => {
     try {
-        const response = await fetch(`http://localhost:3000/api/budgets?userId=${userId}`);
+        const response = await fetch(`http://localhost:3000/api/budgets?userId=${userId}&month=${month}&year=${year}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Dados recebidos da API (Budgets):", data);
         return data;
     } catch (error) {
-        console.error("Home: Erro ao buscar dados dos orçamentos da API (Budgets):", error);
+        console.error("Home: Erro ao buscar dados dos orçamentos da API:", error);
         throw error;
     }
 };
 
-// --- Novas funções de Fetch simuladas para Relatórios ---
-// Em um cenário real, você buscaria esses dados do backend
-const fetchMonthlyData = async (userId) => {
-    console.log("Home: Buscando dados mensais para relatórios para o usuário:", userId);
-    // Dados simulados para receitas e despesas mensais
-    const monthlyData = [
-        { month: 'Jan', income: 3000, expenses: 1500 },
-        { month: 'Fev', income: 3200, expenses: 1800 },
-        { month: 'Mar', income: 2800, expenses: 1600 },
-        { month: 'Abr', income: 3500, expenses: 2000 },
-        { month: 'Mai', income: 3100, expenses: 1700 },
-        { month: 'Jun', income: 3300, expenses: 1900 },
-        { month: 'Jul', income: 2900, expenses: 1650 },
-        { month: 'Ago', income: 3600, expenses: 2100 },
-        { month: 'Set', income: 3400, expenses: 1850 },
-        { month: 'Out', income: 3700, expenses: 2200 },
-        { month: 'Nov', income: 3000, expenses: 1750 },
-        { month: 'Dez', income: 3800, expenses: 2300 },
-    ];
-    return new Promise(resolve => setTimeout(() => resolve(monthlyData), 500));
+const fetchMonthlyFinancialData = async (userId) => {
+    try {
+        const response = await fetch(`http://localhost:3000/api/monthly-financial-data?userId=${userId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Home: Erro ao buscar dados financeiros mensais:", error);
+        throw error;
+    }
 };
 
 const fetchIncomeSources = async (userId) => {
-    console.log("Home: Buscando dados de fontes de renda para o usuário:", userId);
-    // Dados simulados para fontes de renda
-    const incomeSources = [
-        { source: 'Trabalho Atual', value: 7000 },
-        { source: 'Bicos', value: 3000 },
-    ];
-    return new Promise(resolve => setTimeout(() => resolve(incomeSources), 500));
+    try {
+        const response = await fetch(`http://localhost:3000/api/incomes-monthly?userId=${userId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Home: Erro ao buscar fontes de renda:", error);
+        throw error;
+    }
+};
+
+const fetchCategories = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/categorias');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Erro ao buscar categorias:", error);
+        throw error;
+    }
 };
 
 
@@ -499,130 +813,333 @@ function Home() {
     const [expensesData, setExpensesData] = useState([]);
     const [budgetsChartDisplayData, setBudgetsChartDisplayData] = useState([]);
     const [activeSection, setActiveSection] = useState('inicio');
-    const [saldo, setSaldo] = useState(null);
+    const [saldo, setSaldo] = useState(null); // This is the user's actual saldo from the database
     const [totalIncome, setTotalIncome] = useState(0);
     const [totalExpenses, setTotalExpenses] = useState(0);
-    // Novos estados para dados de relatórios
     const [monthlyFinancialData, setMonthlyFinancialData] = useState([]);
     const [incomeSourcesData, setIncomeSourcesData] = useState([]);
+    const [userPhoto, setUserPhoto] = useState(avatarPadrao);
+    const [categories, setCategories] = useState([]);
+    const [selectedBudgetMonth, setSelectedBudgetMonth] = useState(new Date().getMonth() + 1);
+    const [selectedBudgetYear, setSelectedBudgetYear] = useState(new Date().getFullYear());
 
     const userId = localStorage.getItem('userId');
 
+    const [incomeForm, setIncomeForm] = useState(() => {
+        const today = new Date();
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const currentYear = today.getFullYear();
+        return {
+            salary: '',
+            sideGigs: '',
+            month: currentMonth,
+            year: currentYear,
+        };
+    });
+    const [incomeMessage, setIncomeMessage] = useState({ text: '', type: '' });
+
+    const [budgetForm, setBudgetForm] = useState({
+        id: null, // Add ID for editing existing budgets
+        categoryId: '',
+        budgetedAmount: '',
+        month: selectedBudgetMonth, // Add month and year to budget form state
+        year: selectedBudgetYear,
+    });
+    const [budgetMessage, setBudgetMessage] = useState({ text: '', type: '' });
+    const [showBudgetModal, setShowBudgetModal] = useState(false);
+    const [isEditingBudget, setIsEditingBudget] = useState(false);
+
+
+    const loadAllData = useCallback(async () => {
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            console.log("Iniciando carregamento de dados para o usuário:", userId);
+            const [transactions, budgets, saldoData, monthlyData, incomeSources, fetchedCategories] = await Promise.all([
+                fetchTransactions(userId),
+                fetchBudgets(userId, selectedBudgetMonth, selectedBudgetYear),
+                fetchUserSaldo(userId),
+                fetchMonthlyFinancialData(userId),
+                fetchIncomeSources(userId),
+                fetchCategories(),
+            ]);
+
+            setSaldo(saldoData);
+
+            let currentTotalExpenses = 0;
+            const categoryExpenses = transactions.reduce((acc, transaction) => {
+                const categoryName = transaction.category_name || 'Outros';
+                const amount = parseFloat(transaction.amount) || 0;
+
+                if (amount < 0) { // Expense transaction
+                    currentTotalExpenses += Math.abs(amount);
+                    if (!acc[categoryName]) {
+                        acc[categoryName] = 0;
+                    }
+                    acc[categoryName] += Math.abs(amount);
+                }
+                return acc;
+            }, {});
+
+            setTotalExpenses(currentTotalExpenses);
+
+            const formattedExpensesData = Object.entries(categoryExpenses)
+                .filter(([, total]) => total > 0)
+                .map(([category, total]) => ({
+                    category,
+                    value: total,
+                }));
+            setExpensesData(formattedExpensesData);
+
+            let totalIncomeFromTransactions = 0;
+            transactions.forEach(transaction => {
+                const amount = parseFloat(transaction.amount) || 0;
+                if (amount > 0) {
+                    totalIncomeFromTransactions += amount;
+                }
+            });
+
+            const totalIncomeFromRendas = incomeSources.reduce((sum, item) => sum + parseFloat(item.salario || 0) + parseFloat(item.bicos || 0), 0);
+            setTotalIncome(totalIncomeFromRendas + totalIncomeFromTransactions);
+
+            setBudgetsChartDisplayData(budgets);
+
+            const processedMonthlyData = monthlyData.map(d => ({
+                month: d.month,
+                income: parseFloat(d.income),
+                expenses: parseFloat(d.expenses)
+            }));
+            setMonthlyFinancialData(processedMonthlyData);
+
+            const totalSalary = incomeSources.reduce((sum, item) => sum + parseFloat(item.salario || 0), 0);
+            const totalSideGigs = incomeSources.reduce((sum, item) => sum + parseFloat(item.bicos || 0), 0);
+
+            const aggregatedIncomeSources = [
+                { source: 'Salário', value: totalSalary },
+                { source: 'Bicos', value: totalSideGigs }
+            ].filter(item => item.value > 0);
+            setIncomeSourcesData(aggregatedIncomeSources);
+
+            setCategories(fetchedCategories);
+
+        } catch (error) {
+            console.error("Home: Erro GERAL ao buscar ou processar dados:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [userId, selectedBudgetMonth, selectedBudgetYear]);
 
     useEffect(() => {
         document.title = 'Home - Wall & Tea';
         const token = localStorage.getItem('token');
-        console.log("Home: Verificando token:", token);
+        const storedUser = localStorage.getItem('user');
 
-        if (token && userId) {
+        if (token && userId && storedUser) {
             setIsLoggedIn(true);
-            console.log("Home: Usuário autenticado. Token encontrado:", token);
-
-            // Fetch all data necessary for Home and Reports
-            Promise.all([
-                fetchTransactions(userId),
-                fetchBudgets(userId),
-                fetchUserSaldo(userId),
-                fetchMonthlyData(userId), // Nova busca
-                fetchIncomeSources(userId), // Nova busca
-            ])
-                .then(([transactions, budgets, saldoData, monthlyData, incomeSources]) => {
-                    console.log("Dados Transactions brutos:", transactions);
-                    console.log("Dados Budgets brutos:", budgets);
-                    console.log("Saldo do usuário:", saldoData);
-                    console.log("Dados Mensais:", monthlyData);
-                    console.log("Dados Fontes de Renda:", incomeSources);
-
-                    // Processa transações para o gráfico de despesas e totais de receita/despesa
-                    const categoryTotals = transactions.reduce((acc, transaction) => {
-                        // Certifique-se de que category_name existe, caso contrário use 'Outros'
-                        const categoryName = transaction.category_name || 'Outros';
-                        const amount = parseFloat(transaction.amount) || 0;
-
-                        if (amount > 0) {
-                            acc.income += amount;
-                        } else {
-                            acc.expenses += Math.abs(amount);
+            try {
+                const user = JSON.parse(storedUser);
+                if (user.foto) {
+                    if (user.foto.data && user.foto.type === 'Buffer') {
+                        let binary = '';
+                        const bytes = new Uint8Array(user.foto.data);
+                        const len = bytes.byteLength;
+                        for (let i = 0; i < len; i++) {
+                            binary += String.fromCharCode(bytes[i]);
                         }
-
-                        if (!acc.categories[categoryName]) {
-                            acc.categories[categoryName] = 0;
-                        }
-                        acc.categories[categoryName] += Math.abs(amount);
-                        return acc;
-                    }, { income: 0, expenses: 0, categories: {} });
-
-                    setTotalIncome(categoryTotals.income);
-                    setTotalExpenses(Math.abs(categoryTotals.expenses));
-
-                    const formattedExpensesData = Object.entries(categoryTotals.categories).map(([category, total]) => ({
-                        category,
-                        value: total,
-                    }));
-                    setExpensesData(formattedExpensesData);
-
-                    // --- Lógica para o gráfico de Orçamentos (direita) ---
-                    const combinedBudgetsAndExpensesMap = new Map();
-
-                    budgets.forEach(budget => {
-                        const categoryName = budget.category_name;
-                        combinedBudgetsAndExpensesMap.set(categoryName, {
-                            category_name: categoryName,
-                            budgeted: parseFloat(budget.budgeted_amount) || 0,
-                            spent: 0,
-                        });
-                    });
-
-                    formattedExpensesData.forEach(expense => {
-                        const categoryName = expense.category;
-                        if (combinedBudgetsAndExpensesMap.has(categoryName)) {
-                            const existing = combinedBudgetsAndExpensesMap.get(categoryName);
-                            existing.spent = expense.value;
-                            combinedBudgetsAndExpensesMap.set(categoryName, existing);
-                        } else {
-                            // Se há uma despesa para uma categoria não orçada, ainda a inclua
-                            combinedBudgetsAndExpensesMap.set(categoryName, {
-                                category_name: categoryName,
-                                budgeted: 0,
-                                spent: expense.value,
-                            });
-                        }
-                    });
-
-                    const relevantBudgetsData = Array.from(combinedBudgetsAndExpensesMap.values())
-                        .filter(item => item.budgeted > 0 || item.spent > 0); // Filtra para mostrar apenas categorias com orçamento ou gasto
-
-                    setBudgetsChartDisplayData(relevantBudgetsData);
-                    setSaldo(saldoData);
-
-                    // Set state for new reports data
-                    setMonthlyFinancialData(monthlyData);
-                    setIncomeSourcesData(incomeSources);
-
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    console.error("Home: Erro GERAL ao buscar ou processar dados:", error);
-                    setLoading(false);
-                });
+                        const base64 = btoa(binary);
+                        setUserPhoto(`data:image/jpeg;base64,${base64}`);
+                    } else if (typeof user.foto === 'string' && user.foto.startsWith('data:image')) {
+                        setUserPhoto(user.foto);
+                    } else {
+                        setUserPhoto(avatarPadrao);
+                    }
+                } else {
+                    setUserPhoto(avatarPadrao);
+                }
+            } catch (e) {
+                console.error("Failed to parse user data from localStorage", e);
+                setUserPhoto(avatarPadrao);
+            }
+            loadAllData();
         } else {
             setIsLoggedIn(false);
             setLoading(false);
-            console.log("Home: Usuário não autenticado, redirecionando para /login");
             navigate('/login');
         }
-    }, [navigate, userId]);
-
+    }, [navigate, userId, loadAllData]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
+        localStorage.removeItem('user');
         setIsLoggedIn(false);
-        console.log('Home: Usuário deslogado, redirecionando para /login');
         navigate('/login');
     };
 
-    // --- Dados e Opções para o Gráfico de Despesas (Gráfico Esquerdo - Home) ---
+    const handleIncomeFormChange = (e) => {
+        const { name, value } = e.target;
+        setIncomeForm(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleIncomeSubmit = async (e) => {
+        e.preventDefault();
+        setIncomeMessage({ text: '', type: '' });
+
+        const targetMonth = parseInt(incomeForm.month, 10);
+        const targetYear = parseInt(incomeForm.year, 10);
+        const salary = parseFloat(incomeForm.salary) || 0;
+        const sideGigs = parseFloat(incomeForm.sideGigs) || 0;
+
+        if (isNaN(targetMonth) || isNaN(targetYear)) {
+            setIncomeMessage({ text: 'Mês e Ano devem ser válidos.', type: 'error' });
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/api/incomes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    month: targetMonth,
+                    year: targetYear,
+                    salary: salary,
+                    sideGigs: sideGigs,
+                }),
+            });
+
+            if (response.ok) {
+                setIncomeMessage({ text: 'Renda registrada com sucesso!', type: 'success' });
+                const today = new Date();
+                setIncomeForm({
+                    salary: '',
+                    sideGigs: '',
+                    month: String(today.getMonth() + 1).padStart(2, '0'),
+                    year: today.getFullYear(),
+                });
+                loadAllData();
+            } else {
+                const errorData = await response.json();
+                setIncomeMessage({ text: `Erro: ${errorData.error || 'Falha ao registrar renda.'}`, type: 'error' });
+            }
+            setTimeout(() => setIncomeMessage({ text: '', type: '' }), 5000);
+        } catch (error) {
+            console.error("Erro ao submeter renda:", error);
+            setIncomeMessage({ text: 'Erro ao conectar com o servidor.', type: 'error' });
+            setTimeout(() => setIncomeMessage({ text: '', type: '' }), 5000);
+        }
+    };
+
+    const handleBudgetFormChange = (e) => {
+        const { name, value } = e.target;
+        setBudgetForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleBudgetSubmit = async (e) => {
+        e.preventDefault();
+        setBudgetMessage({ text: '', type: '' });
+
+        const { id, categoryId, budgetedAmount } = budgetForm;
+
+        if (!categoryId || budgetedAmount === '') {
+            setBudgetMessage({ text: 'Por favor, preencha todos os campos do orçamento.', type: 'error' });
+            return;
+        }
+
+        try {
+            const method = isEditingBudget ? 'PUT' : 'POST';
+            const url = isEditingBudget ? `http://localhost:3000/api/budgets/${id}` : 'http://localhost:3000/api/budgets';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    categoryId: parseInt(categoryId),
+                    budgetedAmount: parseFloat(budgetedAmount),
+                    month: selectedBudgetMonth,
+                    year: selectedBudgetYear,
+                }),
+            });
+
+            if (response.ok) {
+                setBudgetMessage({ text: `Orçamento ${isEditingBudget ? 'atualizado' : 'definido'} com sucesso!`, type: 'success' });
+                setShowBudgetModal(false);
+                resetBudgetForm();
+                loadAllData();
+            } else {
+                const errorData = await response.json();
+                setBudgetMessage({ text: `Erro: ${errorData.error || 'Falha ao definir orçamento.'}`, type: 'error' });
+            }
+            setTimeout(() => setBudgetMessage({ text: '', type: '' }), 5000);
+        } catch (error) {
+            console.error("Erro ao submeter orçamento:", error);
+            setBudgetMessage({ text: 'Erro ao conectar com o servidor.', type: 'error' });
+            setTimeout(() => setBudgetMessage({ text: '', type: '' }), 5000);
+        }
+    };
+
+    const resetBudgetForm = () => {
+        setBudgetForm({
+            id: null,
+            categoryId: '',
+            budgetedAmount: '',
+            month: selectedBudgetMonth,
+            year: selectedBudgetYear,
+        });
+        setIsEditingBudget(false);
+    };
+
+    const handleOpenBudgetModalForAdd = () => {
+        resetBudgetForm();
+        setShowBudgetModal(true);
+    };
+
+    const handleOpenBudgetModalForEdit = (budget) => {
+        setBudgetForm({
+            id: budget.id,
+            categoryId: budget.category_id,
+            budgetedAmount: budget.budgeted,
+            month: selectedBudgetMonth,
+            year: selectedBudgetYear,
+        });
+        setIsEditingBudget(true);
+        setShowBudgetModal(true);
+    };
+
+    const handleDeleteBudget = async (budgetId) => {
+        if (!window.confirm('Tem certeza que deseja excluir este orçamento?')) {
+            return;
+        }
+        setBudgetMessage({ text: '', type: '' });
+        try {
+            const response = await fetch(`http://localhost:3000/api/budgets/${budgetId}?userId=${userId}`, {
+                method: 'DELETE',
+            });
+            if (response.ok) {
+                setBudgetMessage({ text: 'Orçamento excluído com sucesso!', type: 'success' });
+                loadAllData();
+            } else {
+                const errorData = await response.json();
+                setBudgetMessage({ text: `Erro ao excluir orçamento: ${errorData.error || 'Erro desconhecido.'}`, type: 'error' });
+            }
+            setTimeout(() => setBudgetMessage({ text: '', type: '' }), 5000);
+        } catch (error) {
+            console.error("Erro ao excluir orçamento:", error);
+            setBudgetMessage({ text: 'Erro ao conectar com o servidor para exclusão.', type: 'error' });
+            setTimeout(() => setBudgetMessage({ text: '', type: '' }), 5000);
+        }
+    };
+
+
+    // --- Chart Data and Options ---
     const expensesChartData = {
         labels: expensesData.map((expense) => expense.category),
         datasets: [
@@ -640,118 +1157,67 @@ function Home() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false,
-            },
+            legend: { display: false },
             tooltip: {
                 callbacks: {
                     label: function (context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                        }
-                        return label;
+                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
                     }
                 }
             },
             datalabels: {
-                display: true,
-                anchor: 'end',
-                align: 'top',
-                formatter: function (value) {
-                    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                },
-                color: '#0D4147',
-                font: {
-                    weight: 'bold',
-                    size: 12
-                },
-                offset: 5
+                display: true, anchor: 'end', align: 'end', // FIX: 'end' alignment for better positioning
+                formatter: (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(value),
+                color: '#555',
+                font: { weight: 'bold' },
+                offset: -5, // FIX: Pull label slightly inside the bar
+                padding: { top: 10 }
             }
         },
         scales: {
             y: {
                 beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Valor (BRL)',
-                    padding: { top: 10, bottom: 0 },
-                    font: { size: 14 }
-                },
+                title: { display: true, text: 'Valor (BRL)', font: { size: 14 } },
                 ticks: {
-                    padding: 10,
-                    callback: function (value) {
-                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                    }
+                    callback: (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
                 },
-                grid: {
-                    drawBorder: false
-                }
             },
             x: {
-                title: {
-                    display: true,
-                    text: 'Categoria',
-                    padding: { top: 10, bottom: 0 },
-                    font: { size: 14 }
-                },
-                grid: {
-                    display: false,
-                },
-                ticks: {
-                    padding: 5,
-                    font: { size: 12 }
-                }
+                title: { display: true, text: 'Categoria', font: { size: 14 } },
+                grid: { display: false },
             }
         },
-        layout: {
-            padding: {
-                top: 20,
-                bottom: 20,
-                left: 10,
-                right: 10
-            }
-        }
+        layout: { padding: { top: 30, bottom: 10, left: 10, right: 20 } } // FIX: Increased top padding for labels
     };
 
-    // --- Dados e Opções para o Gráfico de Orçamentos (Gráfico Direito - Home) ---
     const budgetsChartData = {
         labels: budgetsChartDisplayData.map(budget => budget.category_name),
         datasets: [
             {
                 label: 'Gasto',
                 data: budgetsChartDisplayData.map(budget => budget.spent),
-                backgroundColor: budgetsChartDisplayData.map(budget => {
-                    return budget.spent <= budget.budgeted ? 'rgba(67, 236, 172, 0.8)' : 'rgba(255, 99, 132, 0.8)';
-                }),
-                borderColor: budgetsChartDisplayData.map(budget => {
-                    return budget.spent <= budget.budgeted ? 'rgba(67, 236, 172, 1)' : 'rgba(255, 99, 132, 1)';
-                }),
+                backgroundColor: budgetsChartDisplayData.map(budget => budget.spent <= budget.budgeted ? 'rgba(67, 236, 172, 0.8)' : 'rgba(255, 99, 132, 0.8)'),
+                borderColor: budgetsChartDisplayData.map(budget => budget.spent <= budget.budgeted ? 'rgba(67, 236, 172, 1)' : 'rgba(255, 99, 132, 1)'),
                 borderWidth: 1,
-                barPercentage: 0.8,
-                categoryPercentage: 0.8,
+                barPercentage: 0.8, categoryPercentage: 0.8,
             },
+            {
+                label: 'Orçado',
+                data: budgetsChartDisplayData.map(budget => budget.budgeted),
+                backgroundColor: 'rgba(128, 128, 128, 0.2)',
+                borderColor: 'rgba(128, 128, 128, 1)',
+                borderWidth: 1,
+                type: 'bar',
+                order: 1,
+                datalabels: { display: false }
+            }
         ],
     };
 
     const budgetsChartOptions = {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         plugins: {
-            title: {
-                display: true,
-                text: 'Status dos Orçamentos',
-                color: '#108886',
-                font: {
-                    size: 20,
-                    weight: 'bold'
-                },
-                padding: { top: 10, bottom: 20 }
-            },
+            title: { display: true, text: 'Status dos Orçamentos', color: '#108886', font: { size: 20, weight: 'bold' }, padding: { bottom: 20 } },
             tooltip: {
                 callbacks: {
                     label: (context) => {
@@ -759,89 +1225,52 @@ function Home() {
                         const budgeted = budgetsChartDisplayData[dataIndex]?.budgeted || 0;
                         const spent = budgetsChartDisplayData[dataIndex]?.spent || 0;
                         const remaining = budgeted - spent;
-
-                        let label = `Gasto: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}`;
-                        label += `\nOrçado: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budgeted)}`;
-                        label += `\nRestante: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remaining)}`;
-                        return label;
+                        const lines = [
+                            `Gasto: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}`,
+                            `Orçado: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budgeted)}`,
+                            `Restante: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remaining)}`
+                        ];
+                        return lines;
                     },
                 },
             },
-            legend: {
-                display: false,
-            },
+            legend: { display: false },
             datalabels: {
-                display: true,
-                anchor: 'end',
-                align: 'end',
-                formatter: function (value, context) {
-                    const dataIndex = context.dataIndex;
-                    const budgeted = budgetsChartDisplayData[dataIndex]?.budgeted || 0;
-                    const spent = budgetsChartDisplayData[dataIndex]?.spent || 0;
-                    return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)} / ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budgeted)}`;
+                display: true, anchor: 'end', align: 'end',
+                formatter: (value, context) => {
+                    if (context.dataset.label === 'Gasto') {
+                        const dataIndex = context.dataIndex;
+                        const budgeted = budgetsChartDisplayData[dataIndex]?.budgeted || 0;
+                        const spent = budgetsChartDisplayData[dataIndex]?.spent || 0;
+                        if (budgeted === 0) {
+                            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent);
+                        }
+                        const percentage = budgeted > 0 ? ((spent / budgeted) * 100).toFixed(0) : 0;
+                        return `${percentage}%`;
+                    }
+                    return null;
                 },
-                color: '#0D4147',
-                font: {
-                    weight: 'bold',
-                    size: 12
-                },
-                padding: { left: 5 }
+                color: '#333', font: { weight: 'bold' },
+                offset: 5,
             }
         },
         scales: {
             x: {
                 beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Valor (BRL)',
-                    padding: { top: 10, bottom: 0 },
-                    font: { size: 14 }
-                },
+                title: { display: true, text: 'Valor (BRL)', font: { size: 14 } },
                 ticks: {
-                    callback: function (value) {
-                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                    },
-                    padding: 10,
-                    font: { size: 12 }
+                    callback: (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value),
                 },
-                grid: {
-                    display: false,
-                },
-                afterFit: (scale) => {
-                    const maxBudgetedOrSpent = Math.max(...budgetsChartDisplayData.map(b => b.budgeted || 0), ...budgetsChartDisplayData.map(b => b.spent || 0));
-                    scale.max = maxBudgetedOrSpent > 0 ? maxBudgetedOrSpent * 1.2 : 100;
-                }
+                grid: { display: false },
             },
             y: {
-                title: {
-                    display: false,
-                },
-                grid: {
-                    display: false,
-                },
-                ticks: {
-                    display: true,
-                    padding: 15,
-                    font: {
-                        size: 14,
-                        weight: 'bold'
-                    }
-                },
-                position: 'left',
-                beginAtZero: false,
+                grid: { display: false },
+                ticks: { font: { size: 12, weight: 'bold' } },
             },
         },
-        layout: {
-            padding: {
-                top: 20,
-                bottom: 20,
-                left: 10,
-                right: 60
-            }
-        }
+        layout: { padding: { top: 10, bottom: 10, left: 10, right: 40 } } // FIX: Increased right padding for labels
     };
 
-    // --- Dados e Opções para Gráfico de Setor (Categorias - Relatórios) ---
     const categoryPieChartData = {
         labels: expensesData.map(expense => expense.category),
         datasets: [{
@@ -853,20 +1282,12 @@ function Home() {
     };
 
     const categoryPieChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: 'right',
-                labels: {
-                    font: {
-                        size: 12,
-                    }
-                }
-            },
+            legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 20, padding: 20 } },
             tooltip: {
                 callbacks: {
-                    label: function (context) {
+                    label: (context) => {
                         const label = context.label || '';
                         const value = context.parsed || 0;
                         return `${label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}`;
@@ -874,49 +1295,35 @@ function Home() {
                 }
             },
             datalabels: {
-                display: true,
-                color: '#fff', // Cor branca para os labels
+                display: true, color: '#fff',
                 formatter: (value, context) => {
                     const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                    const percentage = (value / total * 100).toFixed(1) + '%';
-                    return percentage;
+                    const percentage = (value / total * 100);
+                    return percentage > 5 ? percentage.toFixed(0) + '%' : ''; // FIX: Only show percentage if it's large enough
                 },
-                font: {
-                    weight: 'bold',
-                    size: 12
-                },
-                textShadowBlur: 2,
-                textShadowColor: 'rgba(0,0,0,0.8)'
+                font: { weight: 'bold', size: 12 }, textShadowBlur: 2, textShadowColor: 'rgba(0,0,0,0.8)'
             }
-        }
+        },
+        layout: { padding: 10 }
     };
 
-    // --- Dados e Opções para Gráfico de Setor (Fontes de Renda - Relatórios) ---
     const incomeSourcesPieChartData = {
         labels: incomeSourcesData.map(source => source.source),
         datasets: [{
             data: incomeSourcesData.map(source => source.value),
-            backgroundColor: ['#4CAF50', '#FFC107'], // Verde para Trabalho Atual, Amarelo para Bicos
+            backgroundColor: ['#4CAF50', '#FFC107'],
             borderColor: ['#388E3C', '#FFA000'],
             borderWidth: 1,
         }]
     };
 
     const incomeSourcesPieChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: 'right',
-                labels: {
-                    font: {
-                        size: 12,
-                    }
-                }
-            },
+            legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 20, padding: 20 } },
             tooltip: {
                 callbacks: {
-                    label: function (context) {
+                    label: (context) => {
                         const label = context.label || '';
                         const value = context.parsed || 0;
                         return `${label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}`;
@@ -924,194 +1331,112 @@ function Home() {
                 }
             },
             datalabels: {
-                display: true,
-                color: '#fff',
+                display: true, color: '#fff',
                 formatter: (value, context) => {
                     const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                    const percentage = (value / total * 100).toFixed(1) + '%';
-                    return percentage;
+                    const percentage = (value / total * 100);
+                    return percentage > 5 ? percentage.toFixed(0) + '%' : ''; // FIX: Only show percentage if large enough
                 },
-                font: {
-                    weight: 'bold',
-                    size: 12
-                },
-                textShadowBlur: 2,
-                textShadowColor: 'rgba(0,0,0,0.8)'
+                font: { weight: 'bold', size: 12 }, textShadowBlur: 2, textShadowColor: 'rgba(0,0,0,0.8)'
             }
-        }
+        },
+        layout: { padding: 10 }
     };
 
-    // --- Dados e Opções para Gráfico de Linhas Comparativas (Receitas vs. Despesas Mensais - Relatórios) ---
     const monthlyLineChartData = {
         labels: monthlyFinancialData.map(data => data.month),
         datasets: [
             {
                 label: 'Receitas',
                 data: monthlyFinancialData.map(data => data.income),
-                borderColor: '#4CAF50', // Verde para receitas
+                borderColor: '#4CAF50',
                 backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                fill: false,
-                tension: 0.3,
-                pointBackgroundColor: '#4CAF50',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
+                fill: false, tension: 0.3, pointBackgroundColor: '#4CAF50', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5,
             },
             {
                 label: 'Despesas',
                 data: monthlyFinancialData.map(data => data.expenses),
-                borderColor: '#F44336', // Vermelho para despesas
+                borderColor: '#F44336',
                 backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                fill: false,
-                tension: 0.3,
-                pointBackgroundColor: '#F44336',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
+                fill: false, tension: 0.3, pointBackgroundColor: '#F44336', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5,
             },
         ],
     };
 
     const monthlyLineChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false, // Usaremos uma legenda personalizada
-            },
+            legend: { display: false },
             tooltip: {
-                mode: 'index',
-                intersect: false,
+                mode: 'index', intersect: false,
                 callbacks: {
-                    label: function (context) {
+                    label: (context) => {
                         let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                        }
+                        label += `: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y)}`;
                         return label;
                     }
                 }
             },
-            datalabels: {
-                display: false, // Desabilitar datalabels para o gráfico de linha para não poluir
-            }
+            datalabels: { display: false }
         },
         scales: {
             x: {
-                title: {
-                    display: true,
-                    text: 'Mês',
-                    font: { size: 14 }
-                },
-                grid: {
-                    display: false,
-                }
+                title: { display: true, text: 'Mês', font: { size: 14 } },
+                grid: { display: false }
             },
             y: {
                 beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Valor (BRL)',
-                    font: { size: 14 }
-                },
+                title: { display: true, text: 'Valor (BRL)', font: { size: 14 } },
                 ticks: {
-                    callback: function (value) {
-                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                    }
+                    callback: (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
                 }
             }
         },
-        layout: {
-            padding: {
-                top: 20,
-                bottom: 20,
-                left: 10,
-                right: 10
-            }
-        }
+        layout: { padding: { top: 20, bottom: 20, left: 10, right: 10 } }
     };
 
-    // --- Dados e Opções para Gráfico de Receita (R$/mês) ---
     const monthlyIncomeChartData = {
         labels: monthlyFinancialData.map(data => data.month),
         datasets: [
             {
                 label: 'Receita (R$/mês)',
                 data: monthlyFinancialData.map(data => data.income),
-                borderColor: '#108886', // Cor do teal
+                borderColor: '#108886',
                 backgroundColor: 'rgba(16, 136, 134, 0.2)',
-                fill: true, // Preenche a área abaixo da linha
-                tension: 0.4, // Curva da linha
-                pointBackgroundColor: '#108886',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
+                fill: true, tension: 0.4, pointBackgroundColor: '#108886', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5,
             },
         ],
     };
 
     const monthlyIncomeChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false,
-            },
+            legend: { display: false },
             tooltip: {
                 callbacks: {
-                    label: function (context) {
+                    label: (context) => {
                         let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                        }
+                         label += `: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y)}`;
                         return label;
                     }
                 }
             },
-            datalabels: {
-                display: false, // Desabilitar datalabels
-            }
+            datalabels: { display: false }
         },
         scales: {
             x: {
-                title: {
-                    display: true,
-                    text: 'Mês',
-                    font: { size: 14 }
-                },
-                grid: {
-                    display: false,
-                }
+                title: { display: true, text: 'Mês', font: { size: 14 } },
+                grid: { display: false }
             },
             y: {
                 beginAtZero: true,
-                max: 5000, // Ajuste o valor máximo do eixo Y
-                title: {
-                    display: true,
-                    text: 'Receita (BRL)',
-                    font: { size: 14 }
-                },
+                title: { display: true, text: 'Receita (BRL)', font: { size: 14 } },
                 ticks: {
-                    callback: function (value) {
-                        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-                    }
+                    callback: (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
                 }
             }
         },
-        layout: {
-            padding: {
-                top: 20,
-                bottom: 20,
-                left: 10,
-                right: 10
-            }
-        }
+        layout: { padding: { top: 20, bottom: 20, left: 10, right: 10 } }
     };
 
 
@@ -1124,12 +1449,39 @@ function Home() {
     }
 
     if (!isLoggedIn) {
-        console.log("Home: Usuário não está logado, não renderizando conteúdo.");
         return null;
     }
 
     const handleNavClick = (section) => {
         setActiveSection(section);
+    };
+
+    const handleBudgetMonthChange = (e) => {
+        const [year, month] = e.target.value.split('-');
+        setSelectedBudgetMonth(parseInt(month));
+        setSelectedBudgetYear(parseInt(year));
+    };
+
+    const getMonthName = (monthNumber) => {
+        const date = new Date();
+        date.setMonth(monthNumber - 1);
+        return date.toLocaleString('pt-BR', { month: 'long' });
+    };
+
+    const generateMonthYearOptions = () => {
+        const options = [];
+        const currentYear = new Date().getFullYear();
+        const startYear = currentYear - 2;
+        const endYear = currentYear + 1;
+
+        for (let year = endYear; year >= startYear; year--) {
+            for (let month = 12; month >= 1; month--) {
+                const monthName = getMonthName(month);
+                const value = `${year}-${String(month).padStart(2, '0')}`;
+                options.push(<option key={value} value={value}>{`${monthName.charAt(0).toUpperCase() + monthName.slice(1)} / ${year}`}</option>);
+            }
+        }
+        return options;
     };
 
     return (
@@ -1157,119 +1509,198 @@ function Home() {
                             Orçamentos
                         </NavItem>
                     </NavLinks>
+                    <UserAvatarInNav src={userPhoto} alt="User Avatar" onClick={() => navigate('/perfil')} />
                 </Navbar>
                 <MainContent>
                     {activeSection === 'inicio' && (
                         <>
-                            {/* Nova linha para Saldo, Receitas e Despesas */}
+                            <IncomeFormContainer>
+                                <h3>Registrar Renda Mensal</h3>
+                                {incomeMessage.text && <Message type={incomeMessage.type}>{incomeMessage.text}</Message>}
+                                <IncomeForm onSubmit={handleIncomeSubmit}>
+                                    <IncomeInputGroup>
+                                        <IncomeLabel htmlFor="salary">Salário:</IncomeLabel>
+                                        <IncomeInput
+                                            type="number"
+                                            id="salary"
+                                            name="salary"
+                                            value={incomeForm.salary}
+                                            onChange={handleIncomeFormChange}
+                                            placeholder="Ex: 3000.00"
+                                            step="0.01"
+                                        />
+                                    </IncomeInputGroup>
+                                    <IncomeInputGroup>
+                                        <IncomeLabel htmlFor="sideGigs">Bicos:</IncomeLabel>
+                                        <IncomeInput
+                                            type="number"
+                                            id="sideGigs"
+                                            name="sideGigs"
+                                            value={incomeForm.sideGigs}
+                                            onChange={handleIncomeFormChange}
+                                            placeholder="Ex: 500.00"
+                                            step="0.01"
+                                        />
+                                    </IncomeInputGroup>
+                                    <IncomeInputGroup>
+                                        <IncomeLabel htmlFor="month">Mês:</IncomeLabel>
+                                        <BudgetSelect
+                                            id="month"
+                                            name="month"
+                                            value={incomeForm.month}
+                                            onChange={handleIncomeFormChange}
+                                        >
+                                            {Array.from({ length: 12 }, (_, i) => (i + 1)).map(monthNum => (
+                                                <option key={monthNum} value={String(monthNum).padStart(2, '0')}>
+                                                    {new Date(0, monthNum - 1).toLocaleString('pt-BR', { month: 'long' })}
+                                                </option>
+                                            ))}
+                                        </BudgetSelect>
+                                    </IncomeInputGroup>
+                                    <IncomeInputGroup>
+                                        <IncomeLabel htmlFor="year">Ano:</IncomeLabel>
+                                        <BudgetSelect
+                                            id="year"
+                                            name="year"
+                                            value={incomeForm.year}
+                                            onChange={handleIncomeFormChange}
+                                        >
+                                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(yearNum => (
+                                                <option key={yearNum} value={yearNum}>{yearNum}</option>
+                                            ))}
+                                        </BudgetSelect>
+                                    </IncomeInputGroup>
+                                    <IncomeButton type="submit">Registrar</IncomeButton>
+                                </IncomeForm>
+                            </IncomeFormContainer>
+
                             <TopRow>
-                                {saldo !== null && (
-                                    <Saldo>
-                                        <p>Saldo Atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldo)}</p>
-                                    </Saldo>
-                                )}
                                 <Financeiro>
                                     <Receitas>
-                                        <p>Despesas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}</p>
+                                        <p>Receitas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}</p>
                                     </Receitas>
                                     <Despesas>
-                                        <p>Receitas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpenses)}</p>
+                                        <p>Despesas: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpenses)}</p>
                                     </Despesas>
+                                    {saldo !== null && (
+                                        <SaldoIndividualDisplay>
+                                            <p>Saldo Atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldo)}</p>
+                                        </SaldoIndividualDisplay>
+                                    )}
                                 </Financeiro>
                             </TopRow>
 
-                            {/* Contêiner dos dois gráficos */}
                             <Charts>
-                                <ChartWrapper> {/* Envolve o ChartContainer para gerenciar flex */}
-                                    {expensesData && (
-                                        <ChartContainer>
-                                            <h3>Despesas por Categoria</h3>
-                                            <Bar data={expensesChartData} options={expensesChartOptions} />
-                                        </ChartContainer>
-                                    )}
+                                <ChartWrapper>
+                                    <ChartContainer>
+                                        <h3>Despesas por Categoria</h3>
+                                         {expensesData.length > 0 ? (
+                                            <div>
+                                               <Bar data={expensesChartData} options={expensesChartOptions} />
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                                <p>Nenhuma despesa para exibir.<br />Registre transações para ver os dados aqui!</p>
+                                            </div>
+                                        )}
+                                    </ChartContainer>
                                 </ChartWrapper>
 
-                                <ChartWrapper> {/* Envolve o ChartContainer para gerenciar flex */}
-                                    {budgetsChartDisplayData.length > 0 && (
-                                        <ChartContainer>
-                                            <Bar data={budgetsChartData} options={budgetsChartOptions} />
-                                        </ChartContainer>
-                                    )}
-                                    {budgetsChartDisplayData.length === 0 && (
-                                        <ChartContainer style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', color: '#666' }}>
-                                            <p>Nenhum orçamento ou despesa registrada para exibir neste gráfico.</p>
-                                            <p>Crie um orçamento ou registre uma transação para ver os dados aqui!</p>
-                                        </ChartContainer>
-                                    )}
+                                <ChartWrapper>
+                                    <ChartContainer>
+                                        <h3>Status dos Orçamentos</h3>
+                                         {budgetsChartDisplayData.length > 0 ? (
+                                             <div>
+                                                <Bar data={budgetsChartData} options={budgetsChartOptions} />
+                                             </div>
+                                        ) : (
+                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                                <p>Nenhum orçamento para exibir.<br/>Crie um orçamento ou registre uma transação!</p>
+                                             </div>
+                                        )}
+                                    </ChartContainer>
                                 </ChartWrapper>
                             </Charts>
 
-                            {/* A tabela de transações abaixo dos gráficos, centralizada e com estilo ajustado */}
                             <TransactionTableWrapper>
-                                <TransactionTable />
+                                <TransactionTable onTransactionChange={loadAllData} />
                             </TransactionTableWrapper>
                         </>
                     )}
 
                     {activeSection === 'relatorios' && (
                         <ReportsContent>
-                            <ReportsTitle>Receitas x Despesas</ReportsTitle>
+                            <ReportsTitle>Relatórios Financeiros</ReportsTitle>
                             <ReportsGrid>
                                 <LeftReportsColumn>
-                                    {expensesData.length > 0 ? (
-                                        <PieChartContainer>
-                                            <h3>Despesas por Categoria</h3>
-                                            <Pie data={categoryPieChartData} options={categoryPieChartOptions} />
-                                        </PieChartContainer>
-                                    ) : (
-                                        <PieChartContainer style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', color: '#666' }}>
-                                            <p>Nenhuma despesa para exibir neste gráfico.</p>
-                                        </PieChartContainer>
-                                    )}
+                                    <PieChartContainer>
+                                        <h3>Despesas por Categoria</h3>
+                                        {expensesData.length > 0 ? (
+                                            <div><Pie data={categoryPieChartData} options={categoryPieChartOptions} /></div>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                               <p>Nenhuma despesa para exibir.</p>
+                                            </div>
+                                        )}
+                                    </PieChartContainer>
 
-                                    {incomeSourcesData.length > 0 ? (
-                                        <PieChartContainer>
-                                            <h3>Fontes de Renda</h3>
-                                            <Pie data={incomeSourcesPieChartData} options={incomeSourcesPieChartOptions} />
-                                        </PieChartContainer>
-                                    ) : (
-                                        <PieChartContainer style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', color: '#666' }}>
-                                            <p>Nenhuma fonte de renda para exibir neste gráfico.</p>
-                                        </PieChartContainer>
-                                    )}
+                                    <PieChartContainer>
+                                        <h3>Fontes de Renda</h3>
+                                        {incomeSourcesData.length > 0 ? (
+                                             <div><Pie data={incomeSourcesPieChartData} options={incomeSourcesPieChartOptions} /></div>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                                <p>Nenhuma fonte de renda para exibir.</p>
+                                            </div>
+                                        )}
+                                    </PieChartContainer>
                                 </LeftReportsColumn>
 
                                 <RightReportsColumn>
                                     <LineChartContainer>
-                                        <h3>Comparativo Mensal</h3>
+                                        <h3>Comparativo Mensal (Receitas vs. Despesas)</h3>
                                         <ChartLegend>
                                             <LegendItem><LegendColorBox color="#4CAF50" />Receitas</LegendItem>
                                             <LegendItem><LegendColorBox color="#F44336" />Despesas</LegendItem>
                                         </ChartLegend>
-                                        <Line data={monthlyLineChartData} options={monthlyLineChartOptions} />
-                                        <MonthlyDataTable>
-                                            <thead>
-                                                <tr>
-                                                    <th>Mês</th>
-                                                    <th>Despesas (BRL)</th>
-                                                    <th>Receitas (BRL)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {monthlyFinancialData.map((data, index) => (
-                                                    <tr key={index}>
-                                                        <td>{data.month}</td>
-                                                        <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.expenses)}</td>
-                                                        <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.income)}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </MonthlyDataTable>
+                                        {monthlyFinancialData.length > 0 ? (
+                                            <>
+                                                <div><Line data={monthlyLineChartData} options={monthlyLineChartOptions} /></div>
+                                                <MonthlyDataTable>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Mês</th>
+                                                            <th>Receitas (BRL)</th>
+                                                            <th>Despesas (BRL)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {monthlyFinancialData.map((data, index) => (
+                                                            <tr key={index}>
+                                                                <td>{data.month}</td>
+                                                                <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.income)}</td>
+                                                                <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.expenses)}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </MonthlyDataTable>
+                                            </>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                                <p>Nenhum dado mensal para exibir.</p>
+                                            </div>
+                                        )}
                                     </LineChartContainer>
 
                                     <LineChartContainer>
-                                        <h3>Receita (R$/mês)</h3>
-                                        <Line data={monthlyIncomeChartData} options={monthlyIncomeChartOptions} />
+                                        <h3>Receita por Mês</h3>
+                                        {monthlyFinancialData.length > 0 ? (
+                                            <div><Line data={monthlyIncomeChartData} options={monthlyIncomeChartOptions} /></div>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#666', height: '100%' }}>
+                                                <p>Nenhum dado de receita mensal para exibir.</p>
+                                            </div>
+                                        )}
                                     </LineChartContainer>
                                 </RightReportsColumn>
                             </ReportsGrid>
@@ -1277,10 +1708,114 @@ function Home() {
                     )}
 
                     {activeSection === 'orcamentos' && (
-                        <div>
-                            <h3>Orçamentos</h3>
-                            {/* Você pode adicionar seu componente de gerenciamento de orçamento aqui */}
-                        </div>
+                        <>
+                            <ReportsTitle>Gestão de Orçamentos</ReportsTitle>
+                            
+                             <BudgetMonthSelector>
+                                <label htmlFor="budgetMonthSelect">Ver Orçamentos de:</label>
+                                <select
+                                    id="budgetMonthSelect"
+                                    value={`${selectedBudgetYear}-${String(selectedBudgetMonth).padStart(2, '0')}`}
+                                    onChange={handleBudgetMonthChange}
+                                >
+                                    {generateMonthYearOptions()}
+                                </select>
+                                <BudgetButton onClick={handleOpenBudgetModalForAdd} style={{ marginLeft: '10px' }}>
+                                    + Adicionar Novo
+                                </BudgetButton>
+                            </BudgetMonthSelector>
+
+                            {budgetMessage.text && <Message type={budgetMessage.type}>{budgetMessage.text}</Message>}
+
+                            <BudgetsTableContainer>
+                                <h3>Orçamentos Detalhados</h3>
+                                {budgetsChartDisplayData.length > 0 ? (
+                                    <BudgetsTable>
+                                        <thead>
+                                            <tr>
+                                                <th>Categoria</th>
+                                                <th>Orçado</th>
+                                                <th>Gasto</th>
+                                                <th>Restante</th>
+                                                <th>Progresso</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {budgetsChartDisplayData.map((budget) => {
+                                                const percentage = budget.budgeted > 0 ? (budget.spent / budget.budgeted) * 100 : 0;
+                                                const remaining = budget.budgeted - budget.spent;
+                                                const categoryName = categories.find(cat => cat.id === budget.category_id)?.name || budget.category_name || 'Desconhecido';
+                                                return (
+                                                    <tr key={budget.id}>
+                                                        <td>{categoryName}</td>
+                                                        <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.budgeted)}</td>
+                                                        <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.spent)}</td>
+                                                        <td style={{ color: remaining < 0 ? 'red' : 'inherit' }}>
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remaining)}
+                                                        </td>
+                                                        <td>
+                                                            <ProgressBarContainer>
+                                                                <ProgressBarFill percentage={percentage}>
+                                                                    {percentage.toFixed(0)}%
+                                                                </ProgressBarFill>
+                                                            </ProgressBarContainer>
+                                                        </td>
+                                                        <td>
+                                                            <ActionButton onClick={() => handleOpenBudgetModalForEdit(budget)}>Editar</ActionButton>
+                                                            <DeleteButton onClick={() => handleDeleteBudget(budget.id)}>Excluir</DeleteButton>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </BudgetsTable>
+                                ) : (
+                                    <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>Nenhum orçamento definido para este mês e ano.</p>
+                                )}
+                            </BudgetsTableContainer>
+
+                            {showBudgetModal && (
+                                <ModalOverlay>
+                                    <ModalContent>
+                                        <CloseButton onClick={() => { setShowBudgetModal(false); resetBudgetForm(); }}>×</CloseButton>
+                                        <h4>{isEditingBudget ? 'Editar Orçamento' : 'Adicionar Novo Orçamento'}</h4>
+                                        <form onSubmit={handleBudgetSubmit}>
+                                            <InputGroup>
+                                                <Label htmlFor="modalBudgetCategory">Categoria:</Label>
+                                                <Select
+                                                    id="modalBudgetCategory"
+                                                    name="categoryId"
+                                                    value={budgetForm.categoryId}
+                                                    onChange={handleBudgetFormChange}
+                                                    required
+                                                >
+                                                    <option value="">Selecione uma Categoria</option>
+                                                    {categories.map((cat) => (
+                                                        <option key={cat.id} value={cat.id}>
+                                                            {cat.name}
+                                                        </option>
+                                                    ))}
+                                                </Select>
+                                            </InputGroup>
+                                            <InputGroup>
+                                                <Label htmlFor="modalBudgetAmount">Valor Orçado:</Label>
+                                                <Input
+                                                    type="number"
+                                                    id="modalBudgetAmount"
+                                                    name="budgetedAmount"
+                                                    value={budgetForm.budgetedAmount}
+                                                    onChange={handleBudgetFormChange}
+                                                    required
+                                                    step="0.01"
+                                                />
+                                            </InputGroup>
+                                            <BudgetButton type="submit">{isEditingBudget ? 'Salvar Alterações' : 'Adicionar Orçamento'}</BudgetButton>
+                                        </form>
+                                    </ModalContent>
+                                </ModalOverlay>
+                            )}
+                        </>
                     )}
                 </MainContent>
                 <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
